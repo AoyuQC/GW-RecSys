@@ -33,6 +33,8 @@ ARG PT_TRAINING_URL=https://aws-pytorch-binaries.s3-us-west-2.amazonaws.com/r1.6
 
 RUN apt-get update && apt-get install -y --no-install-recommends nginx curl
 
+RUN apt-get install python=$PYTHON_VERSION
+
 # RUN conda install -c pytorch magma-cuda101==2.5.2 \
 #  && conda install -c conda-forge \
 #     opencv \
