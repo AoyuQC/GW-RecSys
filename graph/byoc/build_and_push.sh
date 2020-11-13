@@ -5,14 +5,14 @@ algorithm_name=sagemaker-recsys-graph
 
 cd container
 
-chmod +x graph/train
-chmod +x graph/serve
+chmod +x kggraph/train
+chmod +x kggraph/serve
 
 account=$(aws sts get-caller-identity --query Account --output text)
 
 # Get the region defined in the current configuration (default to us-west-2 if none defined)
 region=$(aws configure get region)
-region=${region:-us-west-2}
+region=${region:-us-west-1}
 
 fullname="${account}.dkr.ecr.${region}.amazonaws.com/${algorithm_name}:latest"
 
