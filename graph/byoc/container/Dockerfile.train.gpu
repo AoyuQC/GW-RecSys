@@ -68,6 +68,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends nginx curl pyth
 #  && pip install marisa_trie \
 #  && pip install dgl==0.4.3.post2 \
 #  && pip install -e git+ssh://git@github.com/xiaotinghe/dgl-ke.git#egg=dglke&subdirectory=python
+RUN pip3 install pandas \
+ && pip3 install numpy \
+ && pip3 install boto3 \
+ && pip3 install json \
+ && pip3 install re
 
 RUN pip3 install fastHan \
  && pip3 install pytorch \
