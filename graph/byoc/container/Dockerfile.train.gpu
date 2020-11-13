@@ -67,6 +67,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends nginx curl
 #  && pip install dgl==0.4.3.post2 \
 #  && pip install -e git+ssh://git@github.com/xiaotinghe/dgl-ke.git#egg=dglke&subdirectory=python
 
+RUN pip install -c pytorch magma-cuda101==2.5.2
+
 RUN pip install fastHan \
  && pip install marisa_trie \
  && pip install dgl==0.4.3.post2 \
