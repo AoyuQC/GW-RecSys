@@ -33,34 +33,41 @@ ARG PT_TRAINING_URL=https://aws-pytorch-binaries.s3-us-west-2.amazonaws.com/r1.6
 
 RUN apt-get update && apt-get install -y --no-install-recommends nginx curl
 
-RUN conda install -c pytorch magma-cuda101==2.5.2 \
- && conda install -c conda-forge \
-    opencv \
- && conda install -y scikit-learn \
-    pandas \
-    h5py \
-    requests \
-    libgcc \
- && conda clean -ya
+# RUN conda install -c pytorch magma-cuda101==2.5.2 \
+#  && conda install -c conda-forge \
+#     opencv \
+#  && conda install -y scikit-learn \
+#     pandas \
+#     h5py \
+#     requests \
+#     libgcc \
+#  && conda clean -ya
 
-WORKDIR /opt/pytorch
+# WORKDIR /opt/pytorch
 
-RUN pip install \
-    --no-cache-dir smdebug==${SMDEBUG_VERSION} \
-    "sagemaker>=2,<3" \
-    sagemaker-experiments==0.* \
-    --no-cache-dir "sagemaker-pytorch-training<3" \
-    --no-cache-dir fastai==1.0.59 \
-    "awscli<2" \
-    psutil \
-    Pillow \
-    scipy \
-    click \
- && pip install --no-cache-dir -U ${PT_TRAINING_URL} \
- && pip uninstall -y torchvision \
- && pip install --no-deps --no-cache-dir -U \
-     https://torchvision-build.s3.amazonaws.com/1.6.0/gpu/torchvision-0.7.0-cp36-cp36m-linux_x86_64.whl \
- && pip install fastHan \
+# RUN pip install 
+
+# RUN pip install \
+#     --no-cache-dir smdebug==${SMDEBUG_VERSION} \
+#     "sagemaker>=2,<3" \
+#     sagemaker-experiments==0.* \
+#     --no-cache-dir "sagemaker-pytorch-training<3" \
+#     --no-cache-dir fastai==1.0.59 \
+#     "awscli<2" \
+#     psutil \
+#     Pillow \
+#     scipy \
+#     click \
+#  && pip install --no-cache-dir -U ${PT_TRAINING_URL} \
+#  && pip uninstall -y torchvision \
+#  && pip install --no-deps --no-cache-dir -U \
+#      https://torchvision-build.s3.amazonaws.com/1.6.0/gpu/torchvision-0.7.0-cp36-cp36m-linux_x86_64.whl \
+#  && pip install fastHan \
+#  && pip install marisa_trie \
+#  && pip install dgl==0.4.3.post2 \
+#  && pip install -e git+ssh://git@github.com/xiaotinghe/dgl-ke.git#egg=dglke&subdirectory=python
+
+RUN pip install fastHan \
  && pip install marisa_trie \
  && pip install dgl==0.4.3.post2 \
  && pip install -e git+ssh://git@github.com/xiaotinghe/dgl-ke.git#egg=dglke&subdirectory=python
