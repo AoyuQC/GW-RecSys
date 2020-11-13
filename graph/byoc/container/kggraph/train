@@ -19,6 +19,7 @@
 
 from __future__ import print_function
 
+import encoding
 import kg
 
 import os
