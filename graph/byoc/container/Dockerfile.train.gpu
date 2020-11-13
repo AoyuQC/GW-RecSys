@@ -31,9 +31,7 @@ ENV SAGEMAKER_TRAINING_MODULE=sagemaker_pytorch_container.training:main
 
 ARG PT_TRAINING_URL=https://aws-pytorch-binaries.s3-us-west-2.amazonaws.com/r1.6.0_aws/20200727-215603/a40b1c195ba679596118514fcbeae1f422591426/gpu/torch-1.6.0-cp36-cp36m-manylinux1_x86_64.whl
 
-RUN apt-get update && apt-get install -y --no-install-recommends nginx curl
-
-RUN apt-get install python=$PYTHON_VERSION
+RUN apt-get update && apt-get install -y --no-install-recommends nginx curl python3
 
 # RUN conda install -c pytorch magma-cuda101==2.5.2 \
 #  && conda install -c conda-forge \
