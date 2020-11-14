@@ -1,5 +1,6 @@
 # The tag for the base image is: 10.1-cudnn7-devel-ubuntu16.04
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
+#FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 
 LABEL maintainer="Amazon AI"
 LABEL dlc_major_version="1"
@@ -38,6 +39,7 @@ RUN apt-get install -y --no-install-recommends nginx curl python3-pip python3-de
 && pip3 install --upgrade pip
 
 RUN apt-get install -y --no-install-recommends python3-setuptools
+RUN apt-get install -y --no-install-recommends git
 
 # RUN conda install -c pytorch magma-cuda101==2.5.2 \
 #  && conda install -c conda-forge \
@@ -76,11 +78,12 @@ RUN pip3 install pandas \
  && pip3 install numpy \
  && pip3 install boto3
 
-RUN pip3 install fastHan \
- && pip3 install pytorch \
- && pip3 install marisa_trie \
- && pip3 install dgl==0.4.3.post2 \
- && pip3 install -e git+ssh://git@github.com/xiaotinghe/dgl-ke.git#egg=dglke&subdirectory=python
+RUN pip3 install --no-cache-dir fastHan
+RUN pip3 install --no-cache-dir magma-cuda101
+RUN pip3 install --no-cache-dir torch
+RUN pip3 install --no-cache-dir marisa_trie
+RUN pip3 install --no-cache-dir dgl==0.4.3.post2
+RUN pip3 install -e git+http://git@github.com/xiaotinghe/dgl-ke.git'#egg=dglke&subdirectory=python'
 
 # RUN apt-get update \
 #  && apt-get install -y  --allow-downgrades --allow-change-held-packages --no-install-recommends \

@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
         # _run(train_cmd)
 
-        kg = kg.KG('kg')
+        kg = kg.Kg('kg')
         kg.train(max_step=200)
 
         print('Training complete.')
