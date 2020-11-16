@@ -33,7 +33,7 @@ class ScoringService(object):
         if cls.model == None:
             # import kg
             # import encoding
-            cls.model = None
+            cls.model = prefix
             # with open(os.path.join(model_path, 'decision-tree-model.pkl'), 'r') as inp:
             #     cls.model = pickle.load(inp)
         return cls.model
