@@ -3,7 +3,7 @@ from __future__ import print_function
 import os
 import json
 import pickle
-import StringIO
+from io import StringIO
 import sys
 import signal
 import traceback
