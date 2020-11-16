@@ -12,21 +12,20 @@ import flask
 
 import pandas as pd
 
-import kg
-import encoding
-
 prefix = '/opt/ml/'
 model_path = os.path.join(prefix, 'model')
 
-graph = kg.Kg('kg')
-model = encoding.encoding(graph)
+# graph = kg.Kg('kg')
+# model = encoding.encoding(graph)
 
 # A singleton for holding the model. This simply loads the model and holds it.
 # It has a predict function that does a prediction based on the model and the input data.
 
 class ScoringService(object):
-    # graph = kg.Kg('kg')# Where we keep the model when it's loaded
-    # model = encoding.encoding(graph)
+    import kg
+    import encoding
+    graph = kg.Kg('kg')# Where we keep the model when it's loaded
+    model = encoding.encoding(graph)
 
     @classmethod
     def get_model(cls):
