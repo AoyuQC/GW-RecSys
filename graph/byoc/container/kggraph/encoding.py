@@ -38,6 +38,28 @@ class encoding:
         self.trie = marisa_trie.Trie(list(kg.entity_industry))
         self.vocab = Vocab()
         self.model=FastHan()
+    def __getitem__(self, text):
+        seg, ner_gen, ner_indu = self.word_parser(text)
+        return self.get_encoding(seg, ner_gen, ner_indu)
+    def word_parser(self, text):
+        seg = [str(word).strip() for word in self.model(text)[0] if len(str(word).strip())!=0]
+        ner_pre = self.model(text, target="NER")[0]
+        ner_gen = []
+        word_pos = [0]
+        for word in seg:
+            word_pos.append(len(word) + word_pos[-1])
+        for n in ner_pre:
+            for j in re.finditer(str(n), ''.join(seg)):
+                start, end = None, None
+                for i in range(len(word_pos)-1):
+                    if j.span()[0] == word_pos[i]:
+                        start = i
+                    if j.span()[1] == word_pos[i+1]:
+                        end = i+1
+                if start!=None and end != None:
+                    ner_gen.append((start, end))
+        ner_indu = self.get_industry_entities(seg)
+        return seg, ner_gen, ner_indu
     def get_industry_entities(self, sentence):
         entities = []
         i = 0
@@ -58,28 +80,6 @@ class encoding:
                     i = j
                     break
         return entities
-    def word_parser(self, text):
-        seg = [str(word).strip() for word in self.model(text)[0] if len(str(word).strip())!=0]
-        ner_pre = self.model(text, target="NER")[0]
-        ner_gen = []
-        word_pos = [0]
-        for word in seg:
-            word_pos.append(len(word) + word_pos[-1])
-        for n in ner_pre:
-            for j in re.finditer(str(n), ''.join(seg)):
-                start, end = None, None
-                for i in range(len(word_pos)-1):
-                    if j.span()[0] == word_pos[i]:
-                        start = i
-                    if j.span()[1] == word_pos[i+1]:
-                        end = i+1
-                if start!=None and end != None:
-                    ner_gen.append((start, end))
-        ner_indu = self.get_industry_entities(seg)
-        return seg, ner_gen, ner_indu
-    def __getitem__(self, text):
-        seg, ner_gen, ner_indu = self.word_parser(text)
-        return self.get_encoding(seg, ner_gen, ner_indu)
     def get_encoding(self, seg, ner_gen, ner_indu):
         max_len = 16
         word_encoding = self.vocab[seg]
