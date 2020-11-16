@@ -12,8 +12,8 @@ import flask
 
 import pandas as pd
 
-import kg
-import encoding
+# import kg
+# import encoding
 
 prefix = '/opt/ml/'
 model_path = os.path.join(prefix, 'model')
@@ -22,17 +22,19 @@ model_path = os.path.join(prefix, 'model')
 # It has a predict function that does a prediction based on the model and the input data.
 
 class ScoringService(object):
-    graph = kg.Kg('kg')# Where we keep the model when it's loaded
-    model = encoding.encoding(graph)
+    # graph = kg.Kg('kg')# Where we keep the model when it's loaded
+    # model = encoding.encoding(graph)
 
     @classmethod
     def get_model(cls):
         """Get the model object for this instance, loading it if it's not already loaded."""
-        # if cls.model == None:
-            # kg = kg.Kg('kg')
-            # cls.model = encoding.encoding(kg)
-            # # with open(os.path.join(model_path, 'decision-tree-model.pkl'), 'r') as inp:
-            # #     cls.model = pickle.load(inp)
+        if cls.model == None:
+            import kg
+            import encoding
+            kg = kg.Kg('kg')
+            cls.model = encoding.encoding(kg)
+            # with open(os.path.join(model_path, 'decision-tree-model.pkl'), 'r') as inp:
+            #     cls.model = pickle.load(inp)
         return cls.model
 
     @classmethod
