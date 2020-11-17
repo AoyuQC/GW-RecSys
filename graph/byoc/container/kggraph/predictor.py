@@ -22,10 +22,10 @@ model_path = os.path.join(prefix, 'model')
 # It has a predict function that does a prediction based on the model and the input data.
 
 class ScoringService(object):
-    # import kg
-    # import encoding
-    # graph = kg.Kg('kg')# Where we keep the model when it's loaded
-    # model = encoding.encoding(graph)
+    import kg
+    import encoding
+    graph = kg.Kg('kg')# Where we keep the model when it's loaded
+    model = encoding.encoding(graph)
 
     @classmethod
     def get_model(cls):
@@ -33,7 +33,7 @@ class ScoringService(object):
         if cls.model == None:
             # import kg
             # import encoding
-            cls.model = prefix
+            cls.model = model
             # with open(os.path.join(model_path, 'decision-tree-model.pkl'), 'r') as inp:
             #     cls.model = pickle.load(inp)
         return cls.model
