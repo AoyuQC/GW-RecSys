@@ -257,3 +257,5 @@ ENV PATH="/opt/ml/code:${PATH}"
 
 COPY /kggraph /opt/ml/code
 WORKDIR /opt/ml/code
+
+ENTRYPOINT ["python", "train"]
