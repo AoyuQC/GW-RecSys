@@ -1,4 +1,5 @@
 FROM python:3.7.5-slim-buster
-ADD analyzer.py analyzer.py 
+COPY /code /
+WORKDIR /
 ENTRYPOINT ["python", "analyzer.py"]
 CMD ["--help"]
