@@ -75,7 +75,8 @@ class Kg:
         with open(self.kg_folder + '/kg_dbpedia.txt', 'a') as f:
             for k in self.p:
                 f.write(k)
-    def train(self, output_dir = 'kg_embedding', hidden_dim=128, max_step=320000):
+#     def train(self, output_dir = 'kg_embedding', hidden_dim=128, max_step=320000):
+    def train(self, output_dir = '/opt/ml/model', hidden_dim=128, max_step=320000):
         dglke_train.main(['--dataset','kg',
                   #'--model_name','RotatE'
                   '--gamma','19.9',

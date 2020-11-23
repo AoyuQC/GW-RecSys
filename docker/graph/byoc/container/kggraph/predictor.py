@@ -7,6 +7,7 @@ from io import StringIO
 import sys
 import signal
 import traceback
+import numpy as np
 
 import flask
 
@@ -55,9 +56,10 @@ app = flask.Flask(__name__)
 def ping():
     """Determine if the container is working and healthy. In this sample container, we declare
     it healthy if we can load the model successfully."""
-    health = ScoringService.get_model() is not None  # You can insert a health check here
+    # health = ScoringService.get_model() is not None  # You can insert a health check here
 
-    status = 200 if health else 404
+    # status = 200 if health else 404
+    status = 200
     return flask.Response(response='\n', status=status, mimetype='application/json')
 
 @app.route('/invocations', methods=['POST'])
@@ -69,11 +71,16 @@ def transformation():
     data = None
 
     # Convert from CSV to pandas
-    if flask.request.content_type == 'text/csv':
+    if flask.request.content_type == 'application/json':
+        print("raw data is {}".format(flask.request.data))
         data = flask.request.data.decode('utf-8')
-        s = StringIO.StringIO(data)
-        print("test!! recieve text is {}".format(s))
-        data = s
+        print("data is {}".format(data))
+        data = json.loads(data)
+        data = data['instance']
+        print("final data is {}".format(data))
+        #s = StringIO(data)
+        #print("test!! recieve text is {}".format(s))
+        #data = s
         # data = pd.read_csv(s, header=None)
     else:
         return flask.Response(response='This predictor only supports CSV data', status=415, mimetype='text/plain')
@@ -82,10 +89,13 @@ def transformation():
 
     # Do the prediction
     predictions = ScoringService.predict(data)
+    print("prediction is {}".format(predictions))
 
-    # Convert from numpy back to CSV
-    out = StringIO.StringIO()
-    pd.DataFrame({'results':predictions}).to_csv(out, header=False, index=False)
-    result = out.getvalue()
+    ## Convert from numpy back to CSV
+    #out = StringIO.StringIO()
+    #pd.DataFrame({'results':predictions}).to_csv(out, header=False, index=False)
+    #result = out.getvalue()
+    rr = json.dumps({'result': np.asarray(predictions).tolist()})
+    print("bytes prediction is {}".format(rr))
 
-    return flask.Response(response=result, status=200, mimetype='text/csv')
+    return flask.Response(response=rr, status=200, mimetype='application/json')

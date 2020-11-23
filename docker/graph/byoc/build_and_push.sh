@@ -1,7 +1,7 @@
 %%sh
 
 # The name of our algorithm
-algorithm_name=sagemaker-recsys-graph
+algorithm_name=sagemaker-recsys-graph-train
 
 cd container
 

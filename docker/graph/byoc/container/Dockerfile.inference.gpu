@@ -29,6 +29,8 @@ ENV HOROVOD_VERSION=0.19.5
 ENV DGLBACKEND=pytorch
 ENV CMAKE_PREFIX_PATH="$(dirname $(which conda))/../"
 ENV SAGEMAKER_TRAINING_MODULE=sagemaker_pytorch_container.training:main
+ENV PYTHONUNBUFFERED=TRUE
+ENV PYTHONDONTWRITEBYTECODE=TRUE
 
 ARG PT_TRAINING_URL=https://aws-pytorch-binaries.s3-us-west-2.amazonaws.com/r1.6.0_aws/20200727-215603/a40b1c195ba679596118514fcbeae1f422591426/gpu/torch-1.6.0-cp36-cp36m-manylinux1_x86_64.whl
 
@@ -84,9 +86,10 @@ RUN pip3 install pandas \
 RUN pip3 install --no-cache-dir flask
 RUN pip3 install --no-cache-dir gevent
 RUN pip3 install --no-cache-dir gunicorn
-RUN pip3 install --no-cache-dir fastHan
+# RUN pip3 install --no-cache-dir fastHan
 RUN pip3 install --no-cache-dir marisa_trie
 RUN pip3 install --no-cache-dir dgl==0.4.3.post2
+RUN pip3 install -e git+http://git@github.com/xiaotinghe/fastHan.git'#egg=fastHan'
 RUN pip3 install -e git+http://git@github.com/xiaotinghe/dgl-ke.git'#egg=dglke&subdirectory=python'
 
 RUN rm -rf /root/.cache
@@ -254,3 +257,5 @@ ENV PATH="/opt/ml/code:${PATH}"
 
 COPY /kggraph /opt/ml/code
 WORKDIR /opt/ml/code
+
+ENTRYPOINT ["python", "serve"]
