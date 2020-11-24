@@ -77,11 +77,35 @@ train_dkn_config = training_config(estimator=train_dkn_estimator, inputs=config[
 
 
 # trigger CDK to deploy model as ECS service using Airflow Python Operator
-def dkn_model_deploy(data, **context):
+def task_def(data, **context):
     print('in deploy ...')
-    returned = context['ti'].xcom_pull(key='return_value')
-    print(returned)
-    return returned
+    sm_train_return = context['ti'].xcom_pull(key='return_value')
+    model_s3_key = sm_train_return['Training']['ModelArtifacts']['S3ModelArtifacts']
+    print(model_s3_key)
+
+    task_def = config["ecs_task_definition"]
+    container_cmd = task_def['containerDefinitions'][0]['command'][0]
+    task_def['containerDefinitions'][0]['command'][0] = container_cmd.replace('MODEL_KEY', model_s3_key)
+
+    client = boto3.client('ecs')
+    print(task_def)
+    task_definition = client.register_task_definition(**task_def)
+    task_definition_arn = task_definition['taskDefinition']['taskDefinitionArn']
+
+    return task_definition_arn
+
+
+def deploy_model_ecs(data, **context):
+    print('run ecs task to deploy model ...')
+    task_definition_arn = context['ti'].xcom_pull(key='return_value')
+    print(task_definition_arn)
+
+    client = boto3.client('ecs')
+    run_task_json = config['run_task']
+    run_task_json['taskDefinition'] = task_definition_arn
+    print(run_task_json)
+    run_task_ret = client.run_task(**run_task_json)
+    print(run_task_ret)
 
 
 # =============================================================================
@@ -95,7 +119,7 @@ default_args = {
     'provide_context': True
 }
 
-dag = DAG(dag_id='gw-pipeline', default_args=default_args,
+dag = DAG(dag_id='gw', default_args=default_args,
           schedule_interval='@once')
 
 train_op = SageMakerTrainingOperator(
@@ -104,11 +128,19 @@ train_op = SageMakerTrainingOperator(
     wait_for_completion=True,
     dag=dag)
 
-deploy_op = PythonOperator(
-    task_id='model_deploy',
-    python_callable=dkn_model_deploy,
+task_def_op = PythonOperator(
+    task_id='task_definition',
+    python_callable=task_def,
     op_args=['gw1'],
     provide_context=True,
     dag=dag)
 
-deploy_op.set_upstream(train_op)
+deploy_ecs_op = PythonOperator(
+    task_id='run_task',
+    python_callable=deploy_model_ecs,
+    op_args=['gw1'],
+    provide_context=True,
+    dag=dag)
+
+deploy_ecs_op.set_upstream(task_def_op)
+task_def_op.set_upstream(train_op)

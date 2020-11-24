@@ -81,7 +81,7 @@ config['ecs_task_definition'] = {
 }
 
 config['run_task'] = {
-    'cluster': 'arn:aws:ecs:ap-northeast-1:662566784674:cluster/MyFirstEcsCluster-EcsCluster97242B84-H51U7XKQkznt',
+    'cluster': 'arn:aws:ecs:ap-northeast-1:662566784674:cluster/GW',
     'taskDefinition': 'arn:aws:ecs:ap-northeast-1:662566784674:task-definition/GW-DKN-infer:1',
     'count': 1,
     'launchType': 'FARGATE',
