@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/dkn/tr/
+.idea
+/dkn/recsys_tools/recsys_kg/dkn
