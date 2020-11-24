@@ -127,7 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-/dkn/tr/
+/docker/dkn/recsys_tools/tr/
 .idea
-/dkn/recsys_tools/recsys_kg/dkn
+/docker/dkn/recsys_tools/recsys_kg/dkn
 .DS_Store
