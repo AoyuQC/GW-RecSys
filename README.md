@@ -8,5 +8,6 @@
 
 ## 使用方法
 #### KG 训练
-‘’‘
-’‘’
+##### 通过boto3的方法进行调用，详情参考 graph/train/test_train.ipynb
+#### KG 推理
+##### 通过boto3的方法进行调用，详情参考 graph/inference/test_inference.ipynb
