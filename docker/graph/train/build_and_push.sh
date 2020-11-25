@@ -6,7 +6,7 @@ algorithm_name=sagemaker-recsys-graph-train
 cd container
 
 chmod +x kggraph/train
-chmod +x kggraph/serve
+# chmod +x kggraph/serve
 
 account=$(aws sts get-caller-identity --query Account --output text)
 
