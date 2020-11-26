@@ -87,7 +87,6 @@ class Kg:
                   '--hidden_dim', str(hidden_dim//2), # RotatE模型传入的是1/2 hidden_dim的
                   '-adv',
                   '--regularization_coef','1.00E-09',
-                  '--gpu','0',
                   '--double_ent',
                   '--mix_cpu_gpu',
                   '--save_path',output_dir,

@@ -1,38 +1,39 @@
 # The tag for the base image is: 10.1-cudnn7-devel-ubuntu16.04
 #FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
+# FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
+FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:1.15.3-cpu-py37-ubuntu18.04
 
-LABEL maintainer="Amazon AI"
-LABEL dlc_major_version="1"
-
-ARG PYTHON_VERSION=3.10
-ARG OPEN_MPI_VERSION=4.0.1
-ARG CUBLAS_VERSION=10.2.1.243-1_amd64
-
-# The smdebug pipeline relies for following format to perform string replace and trigger DLC pipeline for validating
-# the nightly builds. Therefore, while updating the smdebug version, please ensure that the format is not disturbed.
-ARG SMDEBUG_VERSION=0.9.3
-
-# Python won’t try to write .pyc or .pyo files on the import of source modules
-# Force stdin, stdout and stderr to be totally unbuffered. Good for logging
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/conda/lib"
-ENV PYTHONIOENCODING=UTF-8
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-ENV PATH /opt/conda/bin:$PATH
-ENV TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX"
-ENV TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
-ENV HOROVOD_VERSION=0.19.5
-ENV DGLBACKEND=pytorch
-ENV CMAKE_PREFIX_PATH="$(dirname $(which conda))/../"
-ENV SAGEMAKER_TRAINING_MODULE=sagemaker_pytorch_container.training:main
-ENV PYTHONUNBUFFERED=TRUE
-ENV PYTHONDONTWRITEBYTECODE=TRUE
-
-ARG PT_TRAINING_URL=https://aws-pytorch-binaries.s3-us-west-2.amazonaws.com/r1.6.0_aws/20200727-215603/a40b1c195ba679596118514fcbeae1f422591426/gpu/torch-1.6.0-cp36-cp36m-manylinux1_x86_64.whl
+#LABEL maintainer="Amazon AI"
+#LABEL dlc_major_version="1"
+#
+#ARG PYTHON_VERSION=3.10
+#ARG OPEN_MPI_VERSION=4.0.1
+#ARG CUBLAS_VERSION=10.2.1.243-1_amd64
+#
+## The smdebug pipeline relies for following format to perform string replace and trigger DLC pipeline for validating
+## the nightly builds. Therefore, while updating the smdebug version, please ensure that the format is not disturbed.
+#ARG SMDEBUG_VERSION=0.9.3
+#
+## Python won’t try to write .pyc or .pyo files on the import of source modules
+## Force stdin, stdout and stderr to be totally unbuffered. Good for logging
+#ENV PYTHONDONTWRITEBYTECODE=1
+#ENV PYTHONUNBUFFERED=1
+#ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+#ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/conda/lib"
+#ENV PYTHONIOENCODING=UTF-8
+#ENV LANG=C.UTF-8
+#ENV LC_ALL=C.UTF-8
+#ENV PATH /opt/conda/bin:$PATH
+#ENV TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX"
+#ENV TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
+#ENV HOROVOD_VERSION=0.19.5
+#ENV DGLBACKEND=pytorch
+#ENV CMAKE_PREFIX_PATH="$(dirname $(which conda))/../"
+#ENV SAGEMAKER_TRAINING_MODULE=sagemaker_pytorch_container.training:main
+#ENV PYTHONUNBUFFERED=TRUE
+#ENV PYTHONDONTWRITEBYTECODE=TRUE
+#
+#ARG PT_TRAINING_URL=https://aws-pytorch-binaries.s3-us-west-2.amazonaws.com/r1.6.0_aws/20200727-215603/a40b1c195ba679596118514fcbeae1f422591426/gpu/torch-1.6.0-cp36-cp36m-manylinux1_x86_64.whl
 
 RUN apt-get update
 #RUN apt-get install -y --no-install-recommends software-properties-common && add-apt-repository ppa:deadsnakes/ppa
