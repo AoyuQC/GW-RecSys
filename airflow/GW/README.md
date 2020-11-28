@@ -1,3 +1,9 @@
+# 总体流程
+1. 先跑cloudformation，建立相关的 role 等东西，替换掉 config 里的role
+2. 创建ECS cluster GW
+3. 配置subnet securitygroup
+4. 建立 log group
+
 ##关于运行 Python CDK
 需要先安装node，安装方法参考：
 https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-up-node-on-ec2-instance.html

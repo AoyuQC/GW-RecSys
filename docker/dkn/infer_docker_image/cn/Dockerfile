@@ -1,51 +1,54 @@
 FROM ubuntu:18.04
 
 LABEL maintainer="Amazon AI"
-LABEL dlc_major_version="7"
+LABEL dlc_major_version="4"
+# Specify LABEL for inference pipelines to use SAGEMAKER_BIND_TO_PORT
+# https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipeline-real-time.html
+LABEL com.amazonaws.sagemaker.capabilities.accept-bind-to-port=true
+LABEL com.amazonaws.sagemaker.capabilities.multi-models=true
 
-# Prevent docker build get stopped by requesting user interaction
-ENV DEBIAN_FRONTEND=noninteractive
-ENV DEBCONF_NONINTERACTIVE_SEEN=true
-# Set environment variables for MKL
-# https://www.tensorflow.org/performance/performance_guide#tensorflow_with_intel%C2%AE_mkl_dnn
-ENV KMP_AFFINITY=granularity=fine,compact,1,0
-ENV KMP_BLOCKTIME=1
-ENV KMP_SETTINGS=0
+# Add arguments to achieve the version, python and url
+ARG PYTHON=python3
+ARG PIP=pip3
+ARG TFS_SHORT_VERSION=1.15.3
+ARG TF_S3_URL=https://tensorflow-aws.s3-us-west-2.amazonaws.com
+ARG TF_MODEL_SERVER_SOURCE=${TF_S3_URL}/${TFS_SHORT_VERSION}/Serving/CPU-WITH-MKL/tensorflow_model_server
+
+# See http://bugs.python.org/issue19846
+ENV LANG=C.UTF-8
 # Python won’t try to write .pyc or .pyo files on the import of source modules
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-# See http://bugs.python.org/issue19846
-ENV PYTHONIOENCODING=UTF-8
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-# Specify the location of module that contains the training logic for SageMaker
-# https://docs.aws.amazon.com/sagemaker/latest/dg/docker-container-environmental-variables-entrypoint.html
-ENV SAGEMAKER_TRAINING_MODULE=sagemaker_tensorflow_container.training:main
+ENV SAGEMAKER_TFS_VERSION="${TFS_SHORT_VERSION}"
+ENV PATH="$PATH:/sagemaker"
+ENV LD_LIBRARY_PATH='/usr/local/lib:$LD_LIBRARY_PATH'
+ENV MODEL_BASE_PATH=/models
+# The only required piece is the model name in order to differentiate endpoints
+ENV MODEL_NAME=model
+# To prevent user interaction when installing time zone data package
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Define framework-related package sources
-ARG TF_URL=https://leigh-dd.s3.cn-northwest-1.amazonaws.com.cn/g-rep/2cn/tensorflow_cpu-1.15.4-cp37-cp37m-manylinux2010_x86_64.whl
-ARG SMDEBUG_VERSION=0.9.4
-ARG PYTHON=python3
-ARG PYTHON_PIP=python3-pip
-ARG PIP=pip3
-ARG PYTHON_VERSION=3.7.7
-
-ARG OPENSSL_VERSION=1.1.1g
-
+# nginx + njs
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-    build-essential \
-    ca-certificates \
+ && apt-get -y install --no-install-recommends \
     curl \
+    gnupg2 \
+    ca-certificates \
     emacs \
     git \
-    openssh-client \
-    openssh-server \
-    vim \
     wget \
-    zlib1g-dev \
- && rm -rf /var/lib/apt/lists/* \
- && apt-get clean
+    build-essential \
+    vim \
+ && curl -s http://nginx.org/keys/nginx_signing.key | apt-key add - \
+ && echo 'deb http://nginx.org/packages/ubuntu/ bionic nginx' >> /etc/apt/sources.list \
+ && apt-get update \
+ && apt-get -y install --no-install-recommends \
+    nginx \
+    nginx-module-njs \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG OPENSSL_VERSION=1.1.1g
 
 RUN wget -c https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz \
  && apt-get update \
@@ -64,96 +67,59 @@ RUN wget -c https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz \
 # causing sslcertverificationerror the below steps are to fix that
 RUN ln -s /etc/ssl/certs/*.* /usr/local/ssl/certs/
 
-# Install Open MPI
-RUN mkdir /tmp/openmpi \
- && cd /tmp/openmpi \
- && curl -fSsL -O https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.1.tar.gz \
- && tar zxf openmpi-4.0.1.tar.gz \
- && cd openmpi-4.0.1 \
- && ./configure --enable-orterun-prefix-by-default \
- && make -j $(nproc) all \
- && make install \
- && ldconfig \
- && rm -rf /tmp/openmpi
-
-# Create a wrapper for OpenMPI to allow running as root by default
-RUN mv /usr/local/bin/mpirun /usr/local/bin/mpirun.real \
- && echo '#!/bin/bash' > /usr/local/bin/mpirun \
- && echo 'mpirun.real --allow-run-as-root "$@"' >> /usr/local/bin/mpirun \
- && chmod a+x /usr/local/bin/mpirun
-
-RUN echo "hwloc_base_binding_policy = none" >> /usr/local/etc/openmpi-mca-params.conf \
- && echo "rmaps_base_mapping_policy = slot" >> /usr/local/etc/openmpi-mca-params.conf
-
-ENV LD_LIBRARY_PATH=/usr/local/openmpi/lib:$LD_LIBRARY_PATH
-ENV PATH=/usr/local/openmpi/bin/:$PATH
-
-# SSH login fix. Otherwise user is kicked off after login
-RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-
-# Create SSH key.
-RUN mkdir -p /root/.ssh/ \
- && mkdir -p /var/run/sshd \
- && ssh-keygen -q -t rsa -N '' -f /root/.ssh/id_rsa \
- && cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys \
- && printf "Host *\n  StrictHostKeyChecking no\n" >> /root/.ssh/config
-
-WORKDIR /
-
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-    libbz2-dev \
-    libc6-dev \
-    libffi-dev \
-    libgdbm-dev \
-    libncursesw5-dev \
-    libreadline-gplv2-dev \
-    libsqlite3-dev \
-    libssl-dev \
-    tk-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-RUN wget https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz \
- && tar -xvf Python-$PYTHON_VERSION.tgz \
- && cd Python-$PYTHON_VERSION \
- && ./configure && make && make install \
- && make && make install && rm -rf ../Python-$PYTHON_VERSION*
+ && apt-get -y install --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN ${PIP} --no-cache-dir install --upgrade \
     pip \
     setuptools
 
-# Some TF tools expect a "python" binary
-RUN ln -s $(which python3) /usr/local/bin/python \
- && ln -s $(which pip3) /usr/bin/pip
-
-RUN ${PIP} install --no-cache-dir -U \
-    numpy==1.18.5 \
-    scipy==1.2.2 \
-    scikit-learn==0.20.3 \
-    pandas==0.24.2 \
-    Pillow \
-    boto3 \
+# cython, falcon, gunicorn, grpc
+RUN ${PIP} install --no-cache-dir \
+    "awscli<2" \
+    pyYAML==5.3.1 \
+    cython==0.29.12 \
+    falcon==2.0.0 \
+    gunicorn==19.9.0 \
+    gevent==1.4.0 \
     requests==2.22.0 \
-    "sagemaker>=2,<3" \
-    smdebug==${SMDEBUG_VERSION} \
-    sagemaker-experiments==0.* \
-    mpi4py==3.0.2 \
-    "cryptography>=2.3" \
-    "sagemaker-tensorflow>=1.15,<1.16" \
-    "sagemaker-tensorflow-training>=10,<20" \
-    # Let's install TensorFlow separately in the end to avoid
-    # the library version to be overwritten
- && ${PIP} install --force-reinstall --no-cache-dir -U \
-    ${TF_URL} \
-    h5py==2.10.0 \
- && ${PIP} install --force-reinstall --no-cache-dir -U \
-    horovod==0.19.5 \
- && ${PIP} install --no-cache-dir -U \
-    "awscli<2"
+    grpcio==1.24.1 \
+    protobuf==3.10.0 \
+# using --no-dependencies to avoid installing tensorflow binary
+ && ${PIP} install --no-dependencies --no-cache-dir \
+    tensorflow-serving-api==1.15.0
 
-ADD https://leigh-gw.s3.cn-north-1.amazonaws.com.cn/container/assets/deep_learning_container.py /usr/local/bin/deep_learning_container.py
+COPY sagemaker /sagemaker
+
+# Some TF tools expect a "python" binary
+RUN ln -s $(which ${PYTHON}) /usr/local/bin/python \
+ && ln -s /usr/local/bin/pip3 /usr/bin/pip
+
+RUN curl ${TF_S3_URL}/MKL-Libraries/libiomp5.so -o /usr/local/lib/libiomp5.so \
+ && curl ${TF_S3_URL}/MKL-Libraries/libmklml_intel.so -o /usr/local/lib/libmklml_intel.so
+
+RUN curl ${TF_MODEL_SERVER_SOURCE} -o /usr/bin/tensorflow_model_server \
+ && chmod 555 /usr/bin/tensorflow_model_server
+
+# Expose ports
+# gRPC and REST
+EXPOSE 8500 8501
+
+# Set where models should be stored in the container
+RUN mkdir -p ${MODEL_BASE_PATH}
+
+# Create a script that runs the model server so we can use environment variables
+# while also passing in arguments from the docker command line
+RUN echo '#!/bin/bash \n\n' > /usr/bin/tf_serving_entrypoint.sh \
+ && echo '/usr/bin/tensorflow_model_server --port=8500 --rest_api_port=8501 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME} "$@"' >> /usr/bin/tf_serving_entrypoint.sh \
+ && chmod +x /usr/bin/tf_serving_entrypoint.sh
+
+ADD https://raw.githubusercontent.com/aws/deep-learning-containers/master/src/deep_learning_container.py /usr/local/bin/deep_learning_container.py
 
 RUN chmod +x /usr/local/bin/deep_learning_container.py
 
@@ -161,4 +127,4 @@ RUN curl https://aws-dlc-licenses.s3.amazonaws.com/tensorflow/license.txt -o /li
 
 Add ./copy_model.py /usr/bin
 
-CMD ["bin/bash"]
+CMD ["/usr/bin/tf_serving_entrypoint.sh"]
