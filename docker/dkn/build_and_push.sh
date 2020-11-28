@@ -1,8 +1,10 @@
-# FROM_ACCOUNT_ID 代表了引用的 docker image 在哪个账号下，这个763104351884的账号其实是固定的，SM用的都是这个账号
+# FROM_ACCOUNT_ID 代表了引用的 docker image 在哪个账号下，
+# global region SM 用的账号是 763104351884
+# 中国 region SM 用的账号是 其他
 FROM_ACCOUNT_ID=763104351884
 # 这个账号指的是想把 build 出来的 image 放到哪个 账号的 ECR 下，也就是当前使用者的account，跟 aws sts get-caller-identity 返回的 account 一致
-ACCOUNT_ID=662566784674
-REGION=ap-northeast-1
+ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
+REGION=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/\(.*\)[a-z]/\1/'`
 REPO_NAME=gw-dkn
 
 TAG=`date '+%Y%m%d%H%M%S'`

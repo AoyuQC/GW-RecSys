@@ -132,3 +132,6 @@ click 后界面不刷新，但是要弹出小窗，**<u>小窗内容待定</u>**
 
 GitHub [新闻标题](https://github.com/hwwang55/DKN/blob/master/data/news/raw_train.txt)
 
+参考 movielens的界面
+
+http://movie-recommender-20191128114141-hostingbucket-dev.s3-website-ap-northeast-1.amazonaws.com/

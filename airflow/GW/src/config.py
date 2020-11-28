@@ -28,8 +28,8 @@ config["train_dkn"] = {
         }
     },
     "inputs": {
-        "train": "s3://leigh-gw/train.csv/",  # replace
-        "test": "s3://leigh-gw/test.csv/",  # replace
+        "train": "s3://<s3-bucket>/train.csv/",  # replace
+        "test": "s3://<s3-bucket>/test.csv/",  # replace
     }
 }
 
@@ -47,7 +47,7 @@ config['ecs_task_definition'] = {
             "-c"
         ],
         "name": "EC2TFInference",
-        "image": "763104351884.dkr.ecr.ap-northeast-1.amazonaws.com/tensorflow-inference:1.15.2-cpu-py36-ubuntu18.04",
+        "image": "763104351884.dkr.ecr.<region-name>.amazonaws.com/tensorflow-inference:1.15.2-cpu-py36-ubuntu18.04",
         "essential": True,
         "portMappings": [{
             "hostPort": 8500,
@@ -68,7 +68,7 @@ config['ecs_task_definition'] = {
             "logDriver": "awslogs",
             "options": {
                 "awslogs-group": "gw-logs",
-                "awslogs-region": "ap-northeast-1",
+                "awslogs-region": "<region-name>",
                 "awslogs-stream-prefix": "inference"
             }
         }
@@ -81,8 +81,8 @@ config['ecs_task_definition'] = {
 }
 
 config['run_task'] = {
-    'cluster': 'arn:aws:ecs:ap-northeast-1:662566784674:cluster/GW',
-    'taskDefinition': 'arn:aws:ecs:ap-northeast-1:662566784674:task-definition/GW-DKN-infer:1',
+    'cluster': 'arn:aws:ecs:<region-name>:662566784674:cluster/GW',
+    'taskDefinition': 'arn:aws:ecs:<region-name>:662566784674:task-definition/GW-DKN-infer:1',
     'count': 1,
     'launchType': 'FARGATE',
     'networkConfiguration': {

@@ -55,8 +55,6 @@ Mappings:
       AMI: "ami-0bdb828fd58c52235"
     us-west-2:
       AMI: "ami-a0cfeed8"
-    cn-north-1:
-      AMI: "ami-0cf913cef98c31648"
 
 Resources:
   EC2Instance:
@@ -223,14 +221,12 @@ Resources:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Effect: Allow
+          - Effect: "Allow"
             Principal:
-              Service: ec2.amazonaws.com
-            Action: 'sts:AssumeRole'
-          - Effect: Allow
-            Principal:
-              Service: sagemaker.amazonaws.com
-            Action: 'sts:AssumeRole'
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
       Path: "/"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess

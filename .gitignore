@@ -131,6 +131,7 @@ dmypy.json
 .idea
 /docker/dkn/recsys_tools/recsys_kg/dkn
 .DS_Store
+toutiao_cat_data.txt.zip
 
 sagemaker-ml-workflow-with-apache-airflow-master/
 sagemaker-ml-workflow-with-apache-airflow-master.zip
