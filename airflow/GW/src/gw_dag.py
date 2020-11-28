@@ -67,7 +67,8 @@ role = get_sagemaker_role_arn(config["job_level"]["sagemaker_role"], sess.region
 
 # define DKN estimator
 train_dkn_estimator = Estimator(
-    image_name='662566784674.dkr.ecr.ap-northeast-1.amazonaws.com/gw-dkn:20201114025113',
+    # image_name='662566784674.dkr.ecr.ap-northeast-1.amazonaws.com/gw-dkn:20201114025113',
+    image_name='690669119032.dkr.ecr.cn-north-1.amazonaws.com.cn/gw-infer:20201128031052',
     role=role,
     sagemaker_session=sagemaker.session.Session(sess),
     **config["train_dkn"]["estimator_config"]
