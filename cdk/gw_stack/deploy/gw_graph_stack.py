@@ -1,21 +1,23 @@
 from aws_cdk import (core, 
                      aws_ec2 as ec2, 
                      aws_ecs as ecs, 
+                     aws_ecr as ecr,
                      aws_ecs_patterns as ecs_patterns, 
                      aws_elasticache as ec,
-                     aws_rds as rds
+                     aws_rds as rds,
+                     aws_iam as iam
                     )
 
 
-class GWStack(core.Stack):
+class GWGraphStack(core.Stack):
 
     def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
         vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
 
-        # # Create Redis
-        # self.create_redis(vpc)
+        ## Create Redis
+        #self.create_redis(vpc)
 
         #Create NLB autoscaling
         self.create_fagate_NLB_autoscaling(vpc)
@@ -73,31 +75,64 @@ class GWStack(core.Stack):
             vpc=vpc
         )
 
-        # Create Fargate Service
-        fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
-            self, "sample-app",
-            cluster=cluster,
-            task_image_options={
-                'image': ecs.ContainerImage.from_registry("amazon/amazon-ecs-sample")
-            }
+        # config IAM role
+        # add managed policy statement
+        ecs_base_role = iam.Role(
+            self,
+            "ecs_service_role",
+            assumed_by=iam.ServicePrincipal("ecs.amazonaws.com")
+        )
+        ecs_role = ecs_base_role.from_role_arn(self, 'gw-ecr-role-test', role_arn='arn:aws:iam::002224604296:role/ecsTaskExecutionRole')
+
+        # Create Fargate Task Definition
+        fargate_task = ecs.FargateTaskDefinition(
+            self, "graph-inference-task-definition", execution_role=ecs_role, task_role=ecs_role
         )
 
-        fargate_service.service.connections.security_groups[0].add_ingress_rule(
-            peer = ec2.Peer.ipv4(vpc.vpc_cidr_block),
-            connection = ec2.Port.tcp(80),
-            description="Allow http inbound from VPC"
+        #ecr_repo = ecr.IRepository(self, "002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-inference")
+        ecr_repo = ecr.Repository.from_repository_name(self, id = "graph-inference-docker", repository_name = "sagemaker-recsys-graph-inference")
+
+        port_mapping = ecs.PortMapping(
+            container_port=8080,
+            host_port=8080,
+            protocol=ecs.Protocol.TCP
         )
 
-        # Setup AutoScaling policy
-        scaling = fargate_service.service.auto_scale_task_count(
-            max_capacity=2
+        ecs_log = ecs.LogDrivers.aws_logs(stream_prefix='gw-inference-test')
+
+        farget_container = fargate_task.add_container("graph-inference",image=ecs.ContainerImage.from_ecr_repository(ecr_repo), logging=ecs_log
         )
-        scaling.scale_on_cpu_utilization(
-            "CpuScaling",
-            target_utilization_percent=50,
-            scale_in_cooldown=core.Duration.seconds(60),
-            scale_out_cooldown=core.Duration.seconds(60),
+        farget_container.add_port_mappings(port_mapping)
+
+
+        ecs.FargateService(self, 'graph-inference-service',
+            cluster=cluster, task_definition=fargate_task
         )
+
+        ## Create Fargate Service
+        #fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
+        #    self, "graph-inference-service",
+        #    cluster=cluster,
+        #    task_image_options={
+        #        'image': ecs.ContainerImage.from_registry("002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-inference")}
+        #)
+
+        #fargate_service.service.connections.security_groups[0].add_ingress_rule(
+        #    peer = ec2.Peer.ipv4(vpc.vpc_cidr_block),
+        #    connection = ec2.Port.tcp(8080),
+        #    description="Allow http inbound from VPC"
+        #)
+
+        ## Setup AutoScaling policy
+        #scaling = fargate_service.service.auto_scale_task_count(
+        #    max_capacity=2
+        #)
+        #scaling.scale_on_cpu_utilization(
+        #    "CpuScaling",
+        #    target_utilization_percent=50,
+        #    scale_in_cooldown=core.Duration.seconds(60),
+        #    scale_out_cooldown=core.Duration.seconds(60),
+        #)
 
     def create_rds(self, vpc):
         # Create DB
