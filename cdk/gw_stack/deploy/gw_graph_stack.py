@@ -22,17 +22,28 @@ class GWGraphStack(core.Stack):
         #self.create_redis(vpc)
 
         #Create NLB autoscaling
-        self.create_fagate_NLB_autoscaling(vpc)
-        # graph_training, graph_inference = self.create_fagate_NLB_autoscaling(vpc)
+        #self.create_fagate_NLB_autoscaling(vpc)
 
-        # graph_interface = GraphInterface(
-        #     self, "GraphInterface", {"train_dns":graph_training, "inference_dns":}
-        # )
+        cfg_dict = {}
+        cfg_dict['function'] = 'graph_inference'
+        cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
+        graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
 
-        # apigw.LambdaRestApi(
-        #     self, 'GraphEndpoint',
-        #     handler=graph_interface.handler,
-        # )
+        cfg_dict['function'] = 'graph_train'
+        cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
+        #graph_train_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
+
+        #lambda_cfg_dict = {}
+        #lambda_cfg_dict['graph_train_dns'] = graph_train_dns
+        #lambda_cfg_dict['graph_inference_dns'] = graph_inference_dns
+        #graph_interface = GraphInterface(
+        #    self, "GraphInterface", **lambda_cfg_dict
+        #)
+
+        #apigw.LambdaRestApi(
+        #    self, 'GraphEndpoint',
+        #    handler=graph_interface.handler,
+        #)
 
 
     def create_redis(self, vpc):
@@ -98,7 +109,7 @@ class GWGraphStack(core.Stack):
 
         # Create Fargate Task Definition
         fargate_task = ecs.FargateTaskDefinition(
-            self, "graph-inference-task-definition", execution_role=ecs_role, task_role=ecs_role
+            self, "graph-inference-task-definition", execution_role=ecs_role, task_role=ecs_role, cpu=2048, memory_limit_mib=4096
         )
 
         #ecr_repo = ecr.IRepository(self, "002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-inference")
@@ -122,12 +133,83 @@ class GWGraphStack(core.Stack):
         )
 
         fargate_service.connections.security_groups[0].add_ingress_rule(
-            peer = ec2.Peer.ipv4(vpc.vpc_cidr_block),
+            peer = ec2.Peer.ipv4('0.0.0.0/0'),
             connection = ec2.Port.tcp(8080),
             description = "Allow http inbound from VPC"
         )
 
         return fargate_service
+
+    def create_fagate_NLB_autoscaling_custom(self, vpc, **kwargs):
+        ####################
+        # unpack value for name/ecr_repo
+        app_name = kwargs['function']
+        task_name = "{}-task-definition".format(app_name)
+        log_name = app_name
+        image_name = "{}-image".format(app_name)
+        container_name = "{}-container".format(app_name)
+        service_name = "{}-service".format(app_name)
+
+        app_ecr = kwargs['ecr']
+
+        ####################
+        # Create Cluster
+        cluster = ecs.Cluster(
+            self, 'fargate-service-autoscaling',
+            vpc=vpc
+        )
+
+        ####################
+        # Config IAM Role
+        # add managed policy statement
+        ecs_base_role = iam.Role(
+            self,
+            "ecs_service_role",
+            assumed_by=iam.ServicePrincipal("ecs.amazonaws.com")
+        )
+        ecs_role = ecs_base_role.from_role_arn(self, 'gw-ecr-role-test', role_arn='arn:aws:iam::002224604296:role/ecsTaskExecutionRole')
+
+        ####################
+        # Create Fargate Task Definition
+        fargate_task = ecs.FargateTaskDefinition(
+            self, task_name, 
+            execution_role=ecs_role, task_role=ecs_role, 
+            cpu=2048, memory_limit_mib=4096
+        )
+        # 0. config log
+        ecs_log = ecs.LogDrivers.aws_logs(stream_prefix=log_name)
+        # 1. prepare ecr repository
+        ecr_repo = ecr.Repository.from_repository_name(self, id = image_name, repository_name = app_ecr)
+        farget_container = fargate_task.add_container(container_name,image=ecs.ContainerImage.from_ecr_repository(ecr_repo), logging=ecs_log
+        )
+        # 2. config port mapping
+        port_mapping = ecs.PortMapping(
+            container_port=8080,
+            host_port=8080,
+            protocol=ecs.Protocol.TCP
+        )
+        farget_container.add_port_mappings(port_mapping)
+
+        ####################
+        # Config NLB service
+        # fargate_service = ecs.FargateService(self, 'graph-inference-service',
+        #     cluster=cluster, task_definition=fargate_task, assign_public_ip=True
+        # )
+        fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
+            self, service_name,
+            cluster=cluster,
+            task_definition=fargate_task,
+            assign_public_ip=True
+        )
+        # 0. allow inbound in sg
+        fargate_service.service.connections.security_groups[0].add_ingress_rule(
+            # peer = ec2.Peer.ipv4(vpc.vpc_cidr_block),
+            peer = ec2.Peer.ipv4('0.0.0.0/0'),
+            connection = ec2.Port.tcp(8080),
+            description = "Allow http inbound from VPC"
+        )
+
+        return fargate_service.load_balancer
 
         ## Create Fargate Service
         #fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
@@ -189,7 +271,12 @@ class GraphInterface(core.Construct):
     def __init__(self, scope: core.Construct, id: str, **kwargs):
 
         super().__init__(scope, id, **kwargs)
+        ####################
+        # Unpack for train/inference dns
+        graph_train_dns = kwargs['graph_train_dns']
+        graph_inference_dns = kwargs['graph_inference_dns']
 
+        #
         # self._user_info_table = ddb.Table(
         #     self, 'UserInfoTable',
         #     partition_key={'name': 'user_id', 'type': ddb.AttributeType.STRING}
@@ -206,8 +293,8 @@ class GraphInterface(core.Construct):
             handler='graphinterface.handler',
             code=_lambda.Code.asset('lambda'),
             environment={
-                'USER_INFO_TABLE': self._user_info_table.table_name,
-                'ITEM_TAG_TABLE': self._item_tag_table.table_name
+                'GRAPH_TRAIN_DNS': graph_train_dns,
+                'GRAPH_INFERENCE_DNS':graph_inference_dns 
             }
         )
 
