@@ -75,7 +75,8 @@ def transformation():
         print("raw data is {}".format(flask.request.data))
         data = flask.request.data.decode('utf-8')
         print("data is {}".format(data))
-        data = json.loads(data)
+        ## sagemaker way mush include the following line
+        #data = json.loads(data)
         data = data['instance']
         print("final data is {}".format(data))
         #s = StringIO(data)
