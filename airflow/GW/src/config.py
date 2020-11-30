@@ -40,14 +40,14 @@ config['ecs_task_definition'] = {
     "memory": "8192",
     "cpu": "4096",
     "containerDefinitions": [{
-        "command": [
-            "mkdir -p /opt/ml/model/dkn && cd /opt/ml/model/dkn && aws s3 cp MODEL_KEY . && tar -xzf model.tar.gz && tensorflow_model_server --port=8500 --rest_api_port=8501 --model_name=dkn --model_base_path=/opt/ml/model/dkn"],
-        "entryPoint": [
-            "sh",
-            "-c"
-        ],
         "name": "EC2TFInference",
-        "image": "763104351884.dkr.ecr.<region-name>.amazonaws.com/tensorflow-inference:1.15.2-cpu-py36-ubuntu18.04",
+        "image": "690669119032.dkr.ecr.cn-north-1.amazonaws.com.cn/gw-infer:20201129041237",
+        "environment": [
+            {
+                "name": "MODEL_S3_KEY",
+                "value": "s3://leigh-gw/dkn_model/dkn-2020-11-28-06-41-17-782/output/model.tar.gz"
+            }
+        ],
         "essential": True,
         "portMappings": [{
             "hostPort": 8500,
@@ -100,4 +100,11 @@ config['run_task'] = {
         'executionRoleArn': 'arn:aws:iam::662566784674:role/ecsTaskExecutionRole',  # replace with S3 get permission
         'taskRoleArn': 'arn:aws:iam::662566784674:role/ecsTaskExecutionRole',  # replace
     }
+}
+
+config['ecs_service_update'] = {
+    "cluster": "GW",
+    "forceNewDeployment": True,
+    "service": "gw",
+    "taskDefinition": ""
 }

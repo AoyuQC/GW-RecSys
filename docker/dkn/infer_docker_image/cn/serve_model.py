@@ -8,9 +8,13 @@ s3client = boto3.client('s3')
 import os
 
 model_s3_key = os.getenv('MODEL_S3_KEY')
+print("model key is {}".format(model_s3_key))
+
 bucket, key = model_s3_key.split('/', 2)[-1].split('/', 1)
+print("bucket is {}, key is {}".format(bucket,key))
+
 s3client.download_file(bucket, key, model_dir + '/model.tar.gz')
-print("model is located at %s, download succeed".format(model_s3_key))
+print("model is located at {}, download succeed".format(model_s3_key))
 
 # 解压缩
 import tarfile

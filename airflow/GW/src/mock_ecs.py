@@ -88,8 +88,7 @@ def task_def(data, **context):
     print(model_key)
 
     task_def = config["ecs_task_definition"]
-    container_cmd = task_def['containerDefinitions'][0]['command'][0]
-    task_def['containerDefinitions'][0]['command'][0] = container_cmd.replace('MODEL_KEY', model_key)
+    task_def['containerDefinitions'][0]['environment'][0]['value'] = model_key
 
     client = boto3.client('ecs')
     print(task_def)
@@ -111,6 +110,17 @@ def deploy_model_ecs(data, **context):
     run_task_ret = client.run_task(**run_task_json)
     print(run_task_ret)
 
+
+def deploy_model_service(data, **context):
+    print('update ecs service to deploy model ...')
+    task_definition_arn = context['ti'].xcom_pull(key='return_value')
+    print(task_definition_arn)
+
+    client = boto3.client('ecs')
+    update_service_json = config['ecs_service_update']
+    update_service_json['taskDefinition']=task_definition_arn
+    update_service_ret = client.update_service(**update_service_json)
+    return update_service_ret
 
 # =============================================================================
 # define airflow DAG and tasks
