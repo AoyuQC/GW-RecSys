@@ -5,7 +5,9 @@ from aws_cdk import (core,
                      aws_ecs_patterns as ecs_patterns, 
                      aws_elasticache as ec,
                      aws_rds as rds,
-                     aws_iam as iam
+                     aws_apigateway as apigw,
+                     aws_iam as iam,
+                     aws_lambda as _lambda
                     )
 
 
@@ -21,6 +23,16 @@ class GWGraphStack(core.Stack):
 
         #Create NLB autoscaling
         self.create_fagate_NLB_autoscaling(vpc)
+        # graph_training, graph_inference = self.create_fagate_NLB_autoscaling(vpc)
+
+        # graph_interface = GraphInterface(
+        #     self, "GraphInterface", {"train_dns":graph_training, "inference_dns":}
+        # )
+
+        # apigw.LambdaRestApi(
+        #     self, 'GraphEndpoint',
+        #     handler=graph_interface.handler,
+        # )
 
 
     def create_redis(self, vpc):
@@ -105,9 +117,17 @@ class GWGraphStack(core.Stack):
         farget_container.add_port_mappings(port_mapping)
 
 
-        ecs.FargateService(self, 'graph-inference-service',
-            cluster=cluster, task_definition=fargate_task
+        fargate_service = ecs.FargateService(self, 'graph-inference-service',
+            cluster=cluster, task_definition=fargate_task, assign_public_ip=True
         )
+
+        fargate_service.connections.security_groups[0].add_ingress_rule(
+            peer = ec2.Peer.ipv4(vpc.vpc_cidr_block),
+            connection = ec2.Port.tcp(8080),
+            description = "Allow http inbound from VPC"
+        )
+
+        return fargate_service
 
         ## Create Fargate Service
         #fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
@@ -155,5 +175,43 @@ class GWGraphStack(core.Stack):
             )
         )
         return rds_cluster
+
+# function:
+# 1. graph training
+# 2. graph inference
+
+class GraphInterface(core.Construct):
+
+    @property
+    def handler(self):
+        return self._handler
+    
+    def __init__(self, scope: core.Construct, id: str, **kwargs):
+
+        super().__init__(scope, id, **kwargs)
+
+        # self._user_info_table = ddb.Table(
+        #     self, 'UserInfoTable',
+        #     partition_key={'name': 'user_id', 'type': ddb.AttributeType.STRING}
+        # )
+
+        # self._item_tag_table = ddb.Table(
+        #     self, 'ItemTagTable',
+        #     partition_key={'name': 'item_type', 'type': ddb.AttributeType.STRING}
+        # )
+
+        self._handler = _lambda.Function(
+            self, 'GraphInterfaceHandler',
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            handler='graphinterface.handler',
+            code=_lambda.Code.asset('lambda'),
+            environment={
+                'USER_INFO_TABLE': self._user_info_table.table_name,
+                'ITEM_TAG_TABLE': self._item_tag_table.table_name
+            }
+        )
+
+        # self._user_info_table.grant_read_write_data(self.handler)
+        # self._item_tag_table.grant_read_write_data(self.handler)
     
 
