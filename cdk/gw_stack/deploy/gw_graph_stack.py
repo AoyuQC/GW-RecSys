@@ -33,7 +33,7 @@ class GWGraphStack(core.Stack):
 
         cfg_dict['function'] = 'graph_train'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
-        # self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
+        self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
 
         #
         #lambda_cfg_dict = {}
@@ -229,7 +229,7 @@ class GWGraphStack(core.Stack):
         # Unpack Value
         app_name = kwargs['function'].replace("_","-")
         lambda_name = "{}-lambda".format(app_name)
-        code_name = "{}-handler".format(app_name)
+        code_name = "{}".format(app_name)
         bucket_name = "{}-bucket-event".format(app_name)
         # Create Lambda
         lambda_app = _lambda.Function(self, lambda_name,
@@ -240,6 +240,10 @@ class GWGraphStack(core.Stack):
         # Create an S3 event soruce for Lambda
         bucket = s3.Bucket(self, bucket_name)
         s3_event_source = lambda_event_source.S3EventSource(bucket, events=[s3.EventType.OBJECT_CREATED])
+        image_uri = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
+        lambda_app.add_event_source(s3_event_source)
+
+        return lambda_app
 
     def create_rds(self, vpc):
         # Create DB
