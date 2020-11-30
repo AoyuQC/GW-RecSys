@@ -88,8 +88,10 @@ def transformation():
     # print('Invoked with {} records'.format(data.shape[0]))
 
     # Do the prediction
-    predictions = ScoringService.predict(data)
-    print("prediction is {}".format(predictions))
+    predictions=[]
+    for d in data:
+        predictions.append(ScoringService.predict(data))
+    # print("prediction is {}".format(predictions))
 
     ## Convert from numpy back to CSV
     #out = StringIO.StringIO()
