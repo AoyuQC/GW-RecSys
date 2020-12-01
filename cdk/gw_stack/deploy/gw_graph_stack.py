@@ -16,10 +16,10 @@ from .utils import GWAppHelper
 
 class GWGraphStack(core.Stack):
 
-    def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
+    def __init__(self, scope: core.Construct, id: str, vpc: ec2.Vpc, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
+        #vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
 
         lambda_train_role = GWAppHelper.create_lambda_train_role(self)
         sagemaker_train_role = GWAppHelper.create_sagemaker_train_role(self)
@@ -47,10 +47,17 @@ class GWGraphStack(core.Stack):
         #Create NLB autoscaling
         #self.create_fagate_NLB_autoscaling(vpc)
 
+<<<<<<< HEAD
+        cfg_dict = {}
+        cfg_dict['function'] = 'graph_inference'
+        cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
+        self.graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
+=======
         #cfg_dict = {}
         #cfg_dict['function'] = 'graph_inference'
         #cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
         #graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
+>>>>>>> 2b7e3bd75ee85ab615c8ae4628c8426097fffb10
 
         #cfg_dict['function'] = 'graph_train'
         #cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'

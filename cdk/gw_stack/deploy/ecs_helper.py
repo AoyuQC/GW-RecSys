@@ -3,42 +3,46 @@ from aws_cdk import (core, aws_ec2 as ec2, aws_ecs as ecs, aws_ecs_patterns as
                      aws_s3 as s3, aws_lambda_event_sources as lambda_event_source, aws_iam as iam)
 
 
-class GWAppHelper:
+class GWEcsHelper:
 
     def __init__(self):
-        self.name='InfaHelper'
+        self.name='AppHelper'
 
     @staticmethod
-    def create_fagate_ALB_autoscaling(scope, vpc, image, name, port=None):
+    def create_fagate_ALB_autoscaling(stack, vpc, image, name, env=None, port=None):
         cluster = ecs.Cluster(
-            scope, 
+            stack, 
             name+'fargate-service-autoscaling', 
             vpc=vpc
         )
 
         task = ecs.FargateTaskDefinition(
-            scope,
+            stack,
             name+'-Task',
             memory_limit_mib=512,
             cpu=256,
         )
 
+        if env is None:
+            env = {}
         if port is not None:
             task.add_container(
                 name+'-Contaner',
-                image=ecs.ContainerImage.from_registry(image)
+                image=ecs.ContainerImage.from_registry(image),
+                environment=env
             ).add_port_mappings(
                     ecs.PortMapping(container_port=port)
             )
         else:
             task.add_container(
                 name+'-Contaner',
-                image=ecs.ContainerImage.from_registry(image)
+                image=ecs.ContainerImage.from_registry(image),
+                environment=env
             )
 
         # Create Fargate Service
         fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
-            scope,
+            stack,
             name+"-Service",
             cluster=cluster,
             task_definition=task
@@ -59,10 +63,12 @@ class GWAppHelper:
         )
 
         core.CfnOutput(
-            scope, 
+            stack, 
             name+'ServiceURL',    
-            value='http://{}/'.format(fargate_service.load_balancer.load_balancer_full_name)
+            value='http://{}/'.format(fargate_service.load_balancer.load_balancer_full_name),
+            export_name=name+'URL'
         )
+        
         return fargate_service.load_balancer.load_balancer_full_name
 
     def create_trigger_training_task(self, **kwargs):
@@ -139,4 +145,3 @@ class GWAppHelper:
         base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSageMakerFullAccess"))
 
         return base_role
-
