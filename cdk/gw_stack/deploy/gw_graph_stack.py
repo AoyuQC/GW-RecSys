@@ -7,7 +7,9 @@ from aws_cdk import (core,
                      aws_rds as rds,
                      aws_apigateway as apigw,
                      aws_iam as iam,
-                     aws_lambda as _lambda
+                     aws_lambda as _lambda,    
+                     aws_s3 as s3,
+                     aws_lambda_event_sources as lambda_event_source
                     )
 
 
@@ -31,20 +33,9 @@ class GWGraphStack(core.Stack):
 
         cfg_dict['function'] = 'graph_train'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
-        #graph_train_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
-
-        #lambda_cfg_dict = {}
-        #lambda_cfg_dict['graph_train_dns'] = graph_train_dns
-        #lambda_cfg_dict['graph_inference_dns'] = graph_inference_dns
-        #graph_interface = GraphInterface(
-        #    self, "GraphInterface", **lambda_cfg_dict
-        #)
-
-        #apigw.LambdaRestApi(
-        #    self, 'GraphEndpoint',
-        #    handler=graph_interface.handler,
-        #)
-
+        cfg_dict['instance'] = "ml.g4dn.xlarge"
+        cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
+        self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
 
     def create_redis(self, vpc):
         subnetGroup = ec.CfnSubnetGroup(
@@ -142,8 +133,8 @@ class GWGraphStack(core.Stack):
 
     def create_fagate_NLB_autoscaling_custom(self, vpc, **kwargs):
         ####################
-        # unpack value for name/ecr_repo
-        app_name = kwargs['function']
+        # Unpack Value for name/ecr_repo
+        app_name = kwargs['function'].replace("_","-")
         task_name = "{}-task-definition".format(app_name)
         log_name = app_name
         image_name = "{}-image".format(app_name)
@@ -208,33 +199,65 @@ class GWGraphStack(core.Stack):
             connection = ec2.Port.tcp(8080),
             description = "Allow http inbound from VPC"
         )
+        # 1. setup autoscaling policy
+        scaling = fargate_service.service.auto_scale_task_count(
+            max_capacity=2
+        )
+        scaling.scale_on_cpu_utilization(
+            "CpuScaling",
+            target_utilization_percent=50,
+            scale_in_cooldown=core.Duration.seconds(60),
+            scale_out_cooldown=core.Duration.seconds(60),
+        )
 
         return fargate_service.load_balancer
 
-        ## Create Fargate Service
-        #fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
-        #    self, "graph-inference-service",
-        #    cluster=cluster,
-        #    task_image_options={
-        #        'image': ecs.ContainerImage.from_registry("002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-inference")}
-        #)
+    def create_lambda_trigger_task_custom(self, vpc, **kwargs):
+        ####################
+        # Unpack Value
+        app_name = kwargs['function'].replace("_","-")
+        lambda_name = "{}-lambda".format(app_name)
+        code_name = "{}".format(app_name)
+        trigger_bucket_name = "{}-bucket-event".format(app_name)
+        train_bucket_name = "{}-bucket-model".format(app_name)
+        job_name = "{}-job".format(app_name)
+        task = "{}-task".format(app_name)
+        instance = kwargs['instance']
+        image_uri = kwargs['image_uri']
 
-        #fargate_service.service.connections.security_groups[0].add_ingress_rule(
-        #    peer = ec2.Peer.ipv4(vpc.vpc_cidr_block),
-        #    connection = ec2.Port.tcp(8080),
-        #    description="Allow http inbound from VPC"
-        #)
+        # Config role
+        lambda_base_role = iam.Role(
+            self,
+            "gw_lambda_train_graph_role",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        #lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_managed_policy_name("AWSLambdaBasicExectutionRole", "arn:aws:iam:aws:policy/service-role/AWSLambdaBasicExecutionRole"))
+        #lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_managed_policy_name("AWSLambdaVPCAcessExecutionRole", "arn:aws:iam:aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"))
+        #lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_managed_policy_name("AmazonSageMakerFullAccess", "arn:aws:iam:aws:policy/AmazonSageMakerFullAccess"))
+        lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"))
+        lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole"))
+        lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSageMakerFullAccess"))
 
-        ## Setup AutoScaling policy
-        #scaling = fargate_service.service.auto_scale_task_count(
-        #    max_capacity=2
-        #)
-        #scaling.scale_on_cpu_utilization(
-        #    "CpuScaling",
-        #    target_utilization_percent=50,
-        #    scale_in_cooldown=core.Duration.seconds(60),
-        #    scale_out_cooldown=core.Duration.seconds(60),
-        #)
+        # Create Lambda
+        lambda_app = _lambda.Function(self, lambda_name,
+            handler='{}.handler'.format(code_name),
+            runtime=_lambda.Runtime.PYTHON_3_7,
+            code=_lambda.Code.asset('lambda'),
+            role=lambda_base_role,
+            environment={
+                'BUCKET': train_bucket_name,
+                'JOB_NAME': job_name,
+                'INSTANCE': instance,
+                'IMAGE_URI': image_uri,
+                'TASK': task
+            }
+        )
+        # Create an S3 event soruce for Lambda
+        bucket = s3.Bucket(self, trigger_bucket_name)
+        s3_event_source = lambda_event_source.S3EventSource(bucket, events=[s3.EventType.OBJECT_CREATED])
+        lambda_app.add_event_source(s3_event_source)
+
+        return lambda_app
 
     def create_rds(self, vpc):
         # Create DB
