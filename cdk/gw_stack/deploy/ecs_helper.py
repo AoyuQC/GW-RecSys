@@ -6,7 +6,7 @@ from aws_cdk import (core, aws_ec2 as ec2, aws_ecs as ecs, aws_ecs_patterns as
 class GWEcsHelper:
 
     def __init__(self):
-        self.name='AppHelper'
+        self.name='EcsHelper'
 
     @staticmethod
     def create_fagate_ALB_autoscaling(stack, vpc, image, name, env=None, port=None):
@@ -71,8 +71,6 @@ class GWEcsHelper:
         
         return fargate_service.load_balancer.load_balancer_full_name
 
-<<<<<<< HEAD:cdk/gw_stack/deploy/ecs_helper.py
-=======
     def create_trigger_training_task(self, **kwargs):
         ####################
         # Unpack Value
@@ -123,4 +121,3 @@ class GWEcsHelper:
         job_name_suffix = "{}-{}-{}".format(prefix, name, suffix)
         return job_name_suffix
 
->>>>>>> 2b7e3bd75ee85ab615c8ae4628c8426097fffb10:cdk/gw_stack/deploy/utils.py

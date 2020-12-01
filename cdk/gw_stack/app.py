@@ -21,8 +21,8 @@ app = core.App()
 # GWTrainHandlerStack(app, "gw-train-stack")
 
 infra_stack = CdkInfraStack(app, "cdk-stack-infra")
-graph_stack = GWGraphStack(app, "cdk-stack-infra",infra_stack.vpc)
-dkn_stack = GWDknStack(app, "cdk-stack-infra",infra_stack.vpc)
+graph_stack = GWGraphStack(app, "cdk-stack-graph",infra_stack.vpc)
+dkn_stack = GWDknStack(app, "cdk-stack-dkn",infra_stack.vpc)
 
 infer_handler_stack = GWInferHandlerStack(
     app, 

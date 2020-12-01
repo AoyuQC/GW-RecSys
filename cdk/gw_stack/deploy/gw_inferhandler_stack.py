@@ -11,7 +11,6 @@ class GWInferHandlerStack(core.Stack):
 
         image = "856419311962.dkr.ecr.cn-north-1.amazonaws.com/recsys-graph-dkn-inference"
         name = "InferHandler"
-<<<<<<< HEAD
         port = 8080
         env = {
             "GRAPH_URL":graph_url,
@@ -19,23 +18,6 @@ class GWInferHandlerStack(core.Stack):
         }
 
         GWEcsHelper.create_fagate_ALB_autoscaling(
-=======
-        port = 80
-        
-        self.dkn_infer = GWAppHelper.create_fagate_ALB_autoscaling(
-            self,
-            vpc,
-            image,
-            name,
-            port
-        )
-
-        image = ""
-        name = "InferHandler"
-        port = 80
-
-        self.graph_infer = GWAppHelper.create_fagate_ALB_autoscaling(
->>>>>>> 2b7e3bd75ee85ab615c8ae4628c8426097fffb10
             self,
             vpc,
             image,
