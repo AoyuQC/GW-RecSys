@@ -12,7 +12,7 @@ from aws_cdk import (core,
                      aws_lambda_event_sources as lambda_event_source
                     )
 
-from .gw_trainhandler_stack import GWTrainHandlerStack
+from .utils import GWAppHelper
 
 class GWGraphStack(core.Stack):
 
@@ -21,7 +21,26 @@ class GWGraphStack(core.Stack):
 
         vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
 
-        GWTrainHandlerStack(scope, "GWTrain", vpc)
+        lambda_train_role = GWAppHelper.create_lambda_train_role(self)
+        sagemaker_train_role = GWAppHelper.create_sagemaker_train_role(self)
+
+        cfg_dict = {}
+        cfg_dict['vpc'] = vpc
+        cfg_dict['name'] = 'graph-train'
+        cfg_dict['date'] = GWAppHelper.get_datetime_str()
+        cfg_dict['trigger_bucket']= "{}-bucket-event-{}".format(cfg_dict['name'], cfg_dict['date'])
+        cfg_dict['input_bucket']= "{}-bucket-model-{}".format(cfg_dict['name'], cfg_dict['date'])
+        cfg_dict['output_bucket']= "{}-bucket-model-{}".format(cfg_dict['name'], cfg_dict['date'])
+        cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
+        cfg_dict['instance'] = "ml.g4dn.xlarge"
+        cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
+        cfg_dict['lambda_role'] = lambda_train_role
+        cfg_dict['sagemaker_role'] = sagemaker_train_role
+        
+        self.graph_train = GWAppHelper.create_trigger_training_task(self, **cfg_dict)
+
+
+
         ## Create Redis
         #self.create_redis(vpc)
 

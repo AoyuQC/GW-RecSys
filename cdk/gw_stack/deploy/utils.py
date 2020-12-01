@@ -1,6 +1,6 @@
 from aws_cdk import (core, aws_ec2 as ec2, aws_ecs as ecs, aws_ecs_patterns as
                      ecs_patterns, aws_elasticache as ec, aws_rds as rds, aws_lambda as _lambda,
-                     aws_s3 as s3)
+                     aws_s3 as s3, aws_lambda_event_sources as lambda_event_source, aws_iam as iam)
 
 
 class GWAppHelper:
@@ -114,4 +114,29 @@ class GWAppHelper:
         suffix = '{:03d}'.format(now.microsecond)[:3]
         job_name_suffix = "{}-{}-{}".format(prefix, name, suffix)
         return job_name_suffix
+
+    def create_lambda_train_role(self):
+        # Config role
+        base_role = iam.Role(
+            self,
+            "gw_lambda_train_role",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"))
+        base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole"))
+        base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSageMakerFullAccess"))
+
+        return base_role 
+        
+    def create_sagemaker_train_role(self):
+        # Config role
+        base_role = iam.Role(
+            self,
+            "gw_sagemaker_train_role",
+            assumed_by=iam.ServicePrincipal("sagemaker.amazonaws.com")
+        )
+        base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"))
+        base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSageMakerFullAccess"))
+
+        return base_role
 

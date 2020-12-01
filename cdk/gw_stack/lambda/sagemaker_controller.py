@@ -18,10 +18,10 @@ def create_training_job(**kwargs):
     # role_arn = "arn:{}:iam::{}:role/service-role/{}".format(partition, account, role_name)
     s3_output_path = 's3://sagemaker-{}-{}/'.format(region, account)
     image_uri = kwargs['image_uri']
-    role_arn = kwargs['sagemaker_role'].role_arn
+    role_arn = kwargs['sagemaker_role']
     instance = kwargs['instance']
     # s3_model_url = s3_output_path +'sagemaker-recsys-graph-train-2020-11-25-07-47-06-659/'
-    s3_model_url = kwargs['output_bucket']
+    s3_model_url = "s3://{}/".format(kwargs['output_bucket'])
 
     response = client.create_training_job(
         TrainingJobName = job_name,
