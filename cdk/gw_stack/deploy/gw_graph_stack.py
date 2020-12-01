@@ -15,10 +15,10 @@ from aws_cdk import (core,
 
 class GWGraphStack(core.Stack):
 
-    def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
+    def __init__(self, scope: core.Construct, id: str, vpc: ec2.Vpc, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
+        #vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
 
         ## Create Redis
         #self.create_redis(vpc)
@@ -29,7 +29,7 @@ class GWGraphStack(core.Stack):
         cfg_dict = {}
         cfg_dict['function'] = 'graph_inference'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
-        graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
+        self.graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
 
         cfg_dict['function'] = 'graph_train'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
