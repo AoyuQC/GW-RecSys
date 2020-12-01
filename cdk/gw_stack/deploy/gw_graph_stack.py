@@ -47,17 +47,14 @@ class GWGraphStack(core.Stack):
         #Create NLB autoscaling
         #self.create_fagate_NLB_autoscaling(vpc)
 
-<<<<<<< HEAD
         cfg_dict = {}
         cfg_dict['function'] = 'graph_inference'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
         self.graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
-=======
         #cfg_dict = {}
         #cfg_dict['function'] = 'graph_inference'
         #cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
         #graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
->>>>>>> 2b7e3bd75ee85ab615c8ae4628c8426097fffb10
 
         #cfg_dict['function'] = 'graph_train'
         #cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
