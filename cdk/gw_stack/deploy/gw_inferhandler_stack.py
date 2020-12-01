@@ -13,7 +13,19 @@ class GWInferHandlerStack(core.Stack):
         name = "InferHandler"
         port = 80
         
-        GWAppHelper.create_fagate_ALB_autoscaling(
+        self.dkn_infer = GWAppHelper.create_fagate_ALB_autoscaling(
+            self,
+            vpc,
+            image,
+            name,
+            port
+        )
+
+        image = ""
+        name = "InferHandler"
+        port = 80
+
+        self.graph_infer = GWAppHelper.create_fagate_ALB_autoscaling(
             self,
             vpc,
             image,

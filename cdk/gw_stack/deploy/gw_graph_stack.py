@@ -12,6 +12,7 @@ from aws_cdk import (core,
                      aws_lambda_event_sources as lambda_event_source
                     )
 
+from .gw_trainhandler_stack import GWTrainHandlerStack
 
 class GWGraphStack(core.Stack):
 
@@ -20,22 +21,23 @@ class GWGraphStack(core.Stack):
 
         vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
 
+        GWTrainHandlerStack(scope, "GWTrain", vpc)
         ## Create Redis
         #self.create_redis(vpc)
 
         #Create NLB autoscaling
         #self.create_fagate_NLB_autoscaling(vpc)
 
-        cfg_dict = {}
-        cfg_dict['function'] = 'graph_inference'
-        cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
-        graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
+        #cfg_dict = {}
+        #cfg_dict['function'] = 'graph_inference'
+        #cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
+        #graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
 
-        cfg_dict['function'] = 'graph_train'
-        cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
-        cfg_dict['instance'] = "ml.g4dn.xlarge"
-        cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
-        self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
+        #cfg_dict['function'] = 'graph_train'
+        #cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
+        #cfg_dict['instance'] = "ml.g4dn.xlarge"
+        #cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
+        #self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
 
     def create_redis(self, vpc):
         subnetGroup = ec.CfnSubnetGroup(
