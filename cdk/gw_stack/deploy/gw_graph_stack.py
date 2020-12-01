@@ -230,17 +230,28 @@ class GWGraphStack(core.Stack):
         app_name = kwargs['function'].replace("_","-")
         lambda_name = "{}-lambda".format(app_name)
         code_name = "{}".format(app_name)
-        bucket_name = "{}-bucket-event".format(app_name)
+        trigger_bucket_name = "{}-bucket-event".format(app_name)
+        train_bucket_name = "{}-bucket-model".format(app_name)
+        job_name = "{}-job".format(app_name)
+        instance = "ml.g4dn.xlarge"
+        image_uri = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
+        task = "{}-task".format(task)
         # Create Lambda
         lambda_app = _lambda.Function(self, lambda_name,
             handler='{}.handler'.format(code_name),
             runtime=_lambda.Runtime.PYTHON_3_7,
-            code=_lambda.Code.asset('lambda')
+            code=_lambda.Code.asset('lambda'),
+            environment={
+                'BUCKET': train_bucket_name,
+                'JOB_NAME': job_name,
+                'INSTANCE': instance,
+                'IMAGE_URI': image_uri,
+                'TASK': task
+            }
         )
         # Create an S3 event soruce for Lambda
-        bucket = s3.Bucket(self, bucket_name)
+        bucket = s3.Bucket(self, trigger_bucket_name)
         s3_event_source = lambda_event_source.S3EventSource(bucket, events=[s3.EventType.OBJECT_CREATED])
-        image_uri = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
         lambda_app.add_event_source(s3_event_source)
 
         return lambda_app
