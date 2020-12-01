@@ -1,31 +1,27 @@
 import boto3
 from iam_helper import IamHelper
 
-def get_datetime_str():
-    from datetime import datetime
-    now = datetime.now()
-    tt = now.timetuple()
-    prefix = tt[0]
-    name = '-'.join(['{:02}'.format(t) for t in tt[1:-3]])
-    suffix = '{:03d}'.format(now.microsecond)[:3]
-    job_name_suffix = "{}-{}-{}".format(prefix, name, suffix)
-    return job_name_suffix
-
-def create_training_job(bucket, jobname, task, image_uri, instance):
-    s3_path = "s3://{}/{}/".format(bucket, jobname)
+#def create_training_job(bucket, jobname, task, image_uri, instance):
+def create_training_job(**kwargs):
+    input_bucket = kwargs['input_bucket']
+    output_bucket = kwargs['output_bucket']
+    date = kwargs['date']
+    name = kwargs['name']
+    # s3_path = "s3://{}/{}/".format(bucket, jobname)
     helper = IamHelper
     client = boto3.client("sagemaker")
-    job_name = "ml-{}-{}".format(task.replace("_", "-"), get_datetime_str())
+    job_name = "ml-{}-{}".format(name,date) 
     account = IamHelper.get_account_id()
     region = IamHelper.get_region()
     partition = IamHelper.get_partition()
     # role_name = "AmazonSageMaker-ExecutionRole-20200512T121482"
     # role_arn = "arn:{}:iam::{}:role/service-role/{}".format(partition, account, role_name)
     s3_output_path = 's3://sagemaker-{}-{}/'.format(region, account)
-    role_arn = 'arn:aws:iam::002224604296:role/service-role/AmazonSageMaker-ExecutionRole-20200402T124851'
-    # image_uri = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
-
-    s3_model_url = s3_output_path +'sagemaker-recsys-graph-train-2020-11-25-07-47-06-659/'
+    image_uri = kwargs['image_uri']
+    role_arn = kwargs['sagemaker_role'].role_arn
+    instance = kwargs['instance']
+    # s3_model_url = s3_output_path +'sagemaker-recsys-graph-train-2020-11-25-07-47-06-659/'
+    s3_model_url = kwargs['output_bucket']
 
     response = client.create_training_job(
         TrainingJobName = job_name,

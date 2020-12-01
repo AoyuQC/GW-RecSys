@@ -8,11 +8,17 @@ from deploy.gw_infra_stack import CdkInfraStack
 from deploy.gw_dkn_stack import GWDknStack
 from deploy.gw_inferhandler_stack import GWInferHandlerStack
 
+# from deploy.gw_trainhandler_stack import GWTrainHandlerStack
+
+
 
 app = core.App()
 # GWStack(app, "gw-recommendation-stack")
 #GWGraphStack(app, "gw-graph-stack")
 #GWInferHandlerStack(app, "gw-inferhandler-stack")
+
+#GWGraphStack(app, "gw-graph-stack")
+# GWTrainHandlerStack(app, "gw-train-stack")
 
 infra_stack = CdkInfraStack(app, "cdk-stack-infra")
 graph_stack = GWGraphStack(app, "cdk-stack-infra",infra_stack.vpc)
