@@ -50,7 +50,7 @@ def handler(event, context):
 
     msg = {}
     try:
-        job_arn = create_training_job(bucket, jobname, task)["TrainingJobArn"]
+        job_arn = create_training_job(bucket, jobname, task, image_uri, instance)["TrainingJobArn"]
         msg = {"Status": "Success", "TrainingJob": job_arn.split("/")[1]}
     except Exception as e:
         msg = {"Status": "Failure", "Message": str(e)}

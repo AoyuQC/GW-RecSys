@@ -11,7 +11,7 @@ def get_datetime_str():
     job_name_suffix = "{}-{}-{}".format(prefix, name, suffix)
     return job_name_suffix
 
-def create_training_job(bucket, jobname, task):
+def create_training_job(bucket, jobname, task, image_uri, instance):
     s3_path = "s3://{}/{}/".format(bucket, jobname)
     helper = IamHelper
     client = boto3.client("sagemaker")
@@ -23,9 +23,9 @@ def create_training_job(bucket, jobname, task):
     # role_arn = "arn:{}:iam::{}:role/service-role/{}".format(partition, account, role_name)
     s3_output_path = 's3://sagemaker-{}-{}/'.format(region, account)
     role_arn = 'arn:aws:iam::002224604296:role/service-role/AmazonSageMaker-ExecutionRole-20200402T124851'
-    image_uri = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
+    # image_uri = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
 
-    s3_model_url = s3_output_path +'sagemaker-recsys-graph-2020-11-17-03-15-32-694/'
+    s3_model_url = s3_output_path +'sagemaker-recsys-graph-train-2020-11-25-07-47-06-659/'
 
     response = client.create_training_job(
         TrainingJobName = job_name,
@@ -50,7 +50,7 @@ def create_training_job(bucket, jobname, task):
             'S3OutputPath':s3_model_url 
         },
         ResourceConfig = {
-            'InstanceType': 'ml.g4dn.xlarge',
+            'InstanceType': instance,
             'InstanceCount': 1,
             'VolumeSizeInGB': 64,
         },

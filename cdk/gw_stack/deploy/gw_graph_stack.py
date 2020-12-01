@@ -33,21 +33,9 @@ class GWGraphStack(core.Stack):
 
         cfg_dict['function'] = 'graph_train'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
+        cfg_dict['instance'] = "ml.g4dn.xlarge"
+        cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
         self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
-
-        #
-        #lambda_cfg_dict = {}
-        #lambda_cfg_dict['graph_train_dns'] = graph_train_dns
-        #lambda_cfg_dict['graph_inference_dns'] = graph_inference_dns
-        #graph_interface = GraphInterface(
-        #    self, "GraphInterface", **lambda_cfg_dict
-        #)
-
-        #apigw.LambdaRestApi(
-        #    self, 'GraphEndpoint',
-        #    handler=graph_interface.handler,
-        #)
-
 
     def create_redis(self, vpc):
         subnetGroup = ec.CfnSubnetGroup(
@@ -233,14 +221,29 @@ class GWGraphStack(core.Stack):
         trigger_bucket_name = "{}-bucket-event".format(app_name)
         train_bucket_name = "{}-bucket-model".format(app_name)
         job_name = "{}-job".format(app_name)
-        instance = "ml.g4dn.xlarge"
-        image_uri = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
-        task = "{}-task".format(task)
+        task = "{}-task".format(app_name)
+        instance = kwargs['instance']
+        image_uri = kwargs['image_uri']
+
+        # Config role
+        lambda_base_role = iam.Role(
+            self,
+            "gw_lambda_train_graph_role",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com")
+        )
+        #lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_managed_policy_name("AWSLambdaBasicExectutionRole", "arn:aws:iam:aws:policy/service-role/AWSLambdaBasicExecutionRole"))
+        #lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_managed_policy_name("AWSLambdaVPCAcessExecutionRole", "arn:aws:iam:aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"))
+        #lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_managed_policy_name("AmazonSageMakerFullAccess", "arn:aws:iam:aws:policy/AmazonSageMakerFullAccess"))
+        lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole"))
+        lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaVPCAccessExecutionRole"))
+        lambda_base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSageMakerFullAccess"))
+
         # Create Lambda
         lambda_app = _lambda.Function(self, lambda_name,
             handler='{}.handler'.format(code_name),
             runtime=_lambda.Runtime.PYTHON_3_7,
             code=_lambda.Code.asset('lambda'),
+            role=lambda_base_role,
             environment={
                 'BUCKET': train_bucket_name,
                 'JOB_NAME': job_name,
