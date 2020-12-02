@@ -10,6 +10,27 @@ class GWEcsHelper:
 
     @staticmethod
     def create_fagate_ALB_autoscaling(stack, vpc, image, name, env=None, port=None):
+        ecs_role = iam.Role(
+            stack, 
+            'FargateTaskExecutionServiceRole', 
+            assumed_by = iam.ServicePrincipal('ecs-tasks.amazonaws.com')    
+        )
+
+        ecs_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect('ALLOW'),
+                resources=['*'],
+                actions=[            
+                    'ecr:GetAuthorizationToken',
+                    'ecr:BatchCheckLayerAvailability',
+                    'ecr:GetDownloadUrlForLayer',
+                    'ecr:BatchGetImage',
+                    'logs:CreateLogStream',
+                    'logs:PutLogEvents'
+                ]
+            )
+        )
+
         cluster = ecs.Cluster(
             stack, 
             name+'fargate-service-autoscaling', 
@@ -21,17 +42,25 @@ class GWEcsHelper:
             name+'-Task',
             memory_limit_mib=512,
             cpu=256,
+            execution_role=ecs_role, 
+            task_role=ecs_role
         )
 
         if env is None:
-            env = {}
+            env = {"test": "test"}
+
+        print(env)
         if port is not None:
             task.add_container(
                 name+'-Contaner',
                 image=ecs.ContainerImage.from_registry(image),
                 environment=env
             ).add_port_mappings(
-                    ecs.PortMapping(container_port=port)
+                    ecs.PortMapping(
+                        container_port=port,
+                        host_port=port,
+                        protocol=ecs.Protocol.TCP
+                    )
             )
         else:
             task.add_container(
@@ -40,18 +69,23 @@ class GWEcsHelper:
                 environment=env
             )
 
+        ecs_log = ecs.LogDrivers.aws_logs(stream_prefix='gw-inference')
+
         # Create Fargate Service
         fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
             stack,
             name+"-Service",
             cluster=cluster,
-            task_definition=task
+            task_definition=task,
+            assign_public_ip=True,
+            listener_port=port,
         )
 
-        fargate_service.service.connections.security_groups[
-            0].add_ingress_rule(peer=ec2.Peer.ipv4(vpc.vpc_cidr_block),
-                                connection=ec2.Port.tcp(port),
-                                description="Allow http inbound from VPC")
+        fargate_service.service.connections.security_groups[0].add_ingress_rule(
+            peer=ec2.Peer.ipv4(vpc.vpc_cidr_block),
+            connection=ec2.Port.tcp(port),
+            description="Allow http inbound from VPC"
+        )
 
         # Setup AutoScaling policy
         scaling = fargate_service.service.auto_scale_task_count(max_capacity=2)
@@ -69,6 +103,6 @@ class GWEcsHelper:
             export_name=name+'URL'
         )
         
-        return fargate_service.load_balancer.load_balancer_full_name
+        return fargate_service.load_balancer.load_balancer_dns_name
 
     

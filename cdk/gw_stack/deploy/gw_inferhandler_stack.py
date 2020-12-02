@@ -16,6 +16,7 @@ class GWInferHandlerStack(core.Stack):
             "GRAPH_URL":graph_url,
             "DKN_URL":dkn_url
         }
+        print(env)
 
         GWEcsHelper.create_fagate_ALB_autoscaling(
             self,

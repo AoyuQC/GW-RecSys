@@ -7,6 +7,7 @@ from deploy.gw_graph_stack import GWGraphStack
 from deploy.gw_infra_stack import CdkInfraStack
 from deploy.gw_dkn_stack import GWDknStack
 from deploy.gw_inferhandler_stack import GWInferHandlerStack
+from deploy.gw_sample_stack import GWSampleStack
 
 # from deploy.gw_trainhandler_stack import GWTrainHandlerStack
 
@@ -20,15 +21,18 @@ app = core.App()
 #GWGraphStack(app, "gw-graph-stack")
 # GWTrainHandlerStack(app, "gw-train-stack")
 
-infra_stack = CdkInfraStack(app, "cdk-stack-infra")
-graph_stack = GWGraphStack(app, "cdk-stack-graph",infra_stack.vpc)
-dkn_stack = GWDknStack(app, "cdk-stack-dkn",infra_stack.vpc)
+infra_stack = CdkInfraStack(app, "cdk-stack-infer-infra")
 
+sample_stack = GWSampleStack(app, "cdk-stack-infer-Sample", infra_stack.vpc)
+#graph_stack = GWGraphStack(app, "cdk-stack-infer-graph", infra_stack.vpc)
+#dkn_stack = GWDknStack(app, "cdk-stack-infer-dkn", infra_stack.vpc)
+"""
 infer_handler_stack = GWInferHandlerStack(
     app, 
-    "cdk-stack-handler-stack", 
+    "cdk-stack-infer-handler", 
     infra_stack.vpc, 
-    graph_stack.dkn_url, 
+    graph_stack.graph_inference_dns, 
     dkn_stack.url
 )
+"""
 app.synth()
