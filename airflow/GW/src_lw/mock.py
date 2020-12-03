@@ -67,14 +67,18 @@ role = get_sagemaker_role_arn(config["job_level"]["sagemaker_role"], sess.region
 
 # define DKN estimator
 train_dkn_estimator = Estimator(
-    # image_name='662566784674.dkr.ecr.ap-northeast-1.amazonaws.com/gw-dkn:20201114025113',
-    image_name='690669119032.dkr.ecr.cn-north-1.amazonaws.com.cn/gw-infer:20201128031052',
+    image_name='662566784674.dkr.ecr.ap-northeast-1.amazonaws.com/gw-dkn:20201114025113',
     role=role,
     sagemaker_session=sagemaker.session.Session(sess),
     **config["train_dkn"]["estimator_config"]
 )
 
 train_dkn_config = training_config(estimator=train_dkn_estimator, inputs=config["train_dkn"]["inputs"])
+
+
+def mock_train(data, **context):
+    S3ModelArtifacts = 's3://rp-gw/dkn/model/model.tar.gz'
+    return S3ModelArtifacts
 
 
 # trigger CDK to deploy model as ECS service using Airflow Python Operator
@@ -86,7 +90,7 @@ def task_def(data, **context):
     task_def = config["ecs_task_definition"]
     task_def['containerDefinitions'][0]['environment'][0]['value'] = model_key
 
-    client = boto3.client('ecs')
+    client = boto3.client('ecs', region_name='cn-north-1')
     print(task_def)
     task_definition = client.register_task_definition(**task_def)
     task_definition_arn = task_definition['taskDefinition']['taskDefinitionArn']
@@ -107,6 +111,18 @@ def deploy_model_ecs(data, **context):
     print(run_task_ret)
 
 
+def deploy_model_service(data, **context):
+    print('update ecs service to deploy model ...')
+    task_definition_arn = context['ti'].xcom_pull(key='return_value')
+    print(task_definition_arn)
+
+    client = boto3.client('ecs')
+    update_service_json = config['ecs_service_update']
+    update_service_json['taskDefinition'] = task_definition_arn
+    update_service_ret = client.update_service(**update_service_json)
+    return update_service_ret
+
+
 # =============================================================================
 # define airflow DAG and tasks
 # =============================================================================
@@ -118,12 +134,13 @@ default_args = {
     'provide_context': True
 }
 
-dag = DAG(dag_id='gw', default_args=default_args,
+dag = DAG(dag_id='mock', default_args=default_args,
           schedule_interval='@once')
 
-train_op = SageMakerTrainingOperator(
+train_op = PythonOperator(
     task_id='tf_training',
-    config=train_dkn_config,
+    python_callable=mock_train,
+    op_args=['gw1'],
     wait_for_completion=True,
     dag=dag)
 
