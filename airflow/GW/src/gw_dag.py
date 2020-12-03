@@ -80,13 +80,14 @@ train_dkn_config = training_config(estimator=train_dkn_estimator, inputs=config[
 # trigger CDK to deploy model as ECS service using Airflow Python Operator
 def task_def(data, **context):
     print('in deploy ...')
-    model_key = context['ti'].xcom_pull(key='return_value')
-    print(model_key)
+    sm_train_return = context['ti'].xcom_pull(key='return_value')
+    model_s3_key = sm_train_return['Training']['ModelArtifacts']['S3ModelArtifacts']
+    print(model_s3_key)
 
     task_def = config["ecs_task_definition"]
-    task_def['containerDefinitions'][0]['environment'][0]['value'] = model_key
+    task_def['containerDefinitions'][0]['environment'][0]['value'] = model_s3_key
 
-    client = boto3.client('ecs')
+    client = boto3.client('ecs', region_name='cn-north-1')
     print(task_def)
     task_definition = client.register_task_definition(**task_def)
     task_definition_arn = task_definition['taskDefinition']['taskDefinitionArn']

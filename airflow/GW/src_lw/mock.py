@@ -34,6 +34,9 @@ from sagemaker.workflow.airflow import tuning_config
 from sagemaker.workflow.airflow import transform_config_from_estimator
 
 # ml workflow specific
+import sys
+
+sys.path.insert(0, "/root/airflow/dags/config")
 import config as cfg
 
 from airflow.operators.python_operator import PythonOperator
@@ -108,7 +111,7 @@ def deploy_model_ecs(data, **context):
     run_task_json['taskDefinition'] = task_definition_arn
     print(run_task_json)
     run_task_ret = client.run_task(**run_task_json)
-    print(run_task_ret)
+    return run_task_ret
 
 
 def deploy_model_service(data, **context):
@@ -153,7 +156,7 @@ task_def_op = PythonOperator(
 
 deploy_ecs_op = PythonOperator(
     task_id='run_task',
-    python_callable=deploy_model_ecs,
+    python_callable=deploy_model_service,
     op_args=['gw1'],
     provide_context=True,
     dag=dag)

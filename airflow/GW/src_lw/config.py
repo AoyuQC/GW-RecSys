@@ -105,8 +105,8 @@ config['run_task'] = {
 }
 
 config['ecs_service_update'] = {
-    "cluster": "GW",
+    'cluster': 'arn:aws-cn:ecs:cn-north-1:856419311962:cluster/cdk-stack-infer-dkn-DKNinferencefargateserviceautoscaling22E4AB44-Llh81Z2M2qGc',  # replace
+    "service": "test",
     "forceNewDeployment": True,
-    "service": "gw",
     "taskDefinition": ""
 }

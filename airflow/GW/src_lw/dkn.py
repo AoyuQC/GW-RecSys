@@ -34,6 +34,9 @@ from sagemaker.workflow.airflow import tuning_config
 from sagemaker.workflow.airflow import transform_config_from_estimator
 
 # ml workflow specific
+import sys
+
+sys.path.insert(0, "/root/airflow/dags/config")
 import config as cfg
 
 from airflow.operators.python_operator import PythonOperator
@@ -79,13 +82,14 @@ train_dkn_config = training_config(estimator=train_dkn_estimator, inputs=config[
 # trigger CDK to deploy model as ECS service using Airflow Python Operator
 def task_def(data, **context):
     print('in deploy ...')
-    model_key = context['ti'].xcom_pull(key='return_value')
-    print(model_key)
+    sm_train_return = context['ti'].xcom_pull(key='return_value')
+    model_s3_key = sm_train_return['Training']['ModelArtifacts']['S3ModelArtifacts']
+    print(model_s3_key)
 
     task_def = config["ecs_task_definition"]
-    task_def['containerDefinitions'][0]['environment'][0]['value'] = model_key
+    task_def['containerDefinitions'][0]['environment'][0]['value'] = model_s3_key
 
-    client = boto3.client('ecs')
+    client = boto3.client('ecs', region_name='cn-north-1')
     print(task_def)
     task_definition = client.register_task_definition(**task_def)
     task_definition_arn = task_definition['taskDefinition']['taskDefinitionArn']
@@ -103,7 +107,19 @@ def deploy_model_ecs(data, **context):
     run_task_json['taskDefinition'] = task_definition_arn
     print(run_task_json)
     run_task_ret = client.run_task(**run_task_json)
-    print(run_task_ret)
+    return run_task_ret
+
+
+def deploy_model_service(data, **context):
+    print('update ecs service to deploy model ...')
+    task_definition_arn = context['ti'].xcom_pull(key='return_value')
+    print(task_definition_arn)
+
+    client = boto3.client('ecs')
+    update_service_json = config['ecs_service_update']
+    update_service_json['taskDefinition'] = task_definition_arn
+    update_service_ret = client.update_service(**update_service_json)
+    return update_service_ret
 
 
 # =============================================================================
@@ -117,7 +133,7 @@ default_args = {
     'provide_context': True
 }
 
-dag = DAG(dag_id='dkn', default_args=default_args,
+dag = DAG(dag_id='train_dkn', default_args=default_args,
           schedule_interval='@once')
 
 train_op = SageMakerTrainingOperator(
@@ -135,7 +151,7 @@ task_def_op = PythonOperator(
 
 deploy_ecs_op = PythonOperator(
     task_id='run_task',
-    python_callable=deploy_model_ecs,
+    python_callable=deploy_model_service,
     op_args=['gw1'],
     provide_context=True,
     dag=dag)
