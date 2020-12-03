@@ -9,6 +9,30 @@ class GWEcsHelper:
         self.name='EcsHelper'
 
     @staticmethod
+    def create_ecs_role(stack):
+        ecs_role = iam.Role(
+            stack, 
+            'FargateTaskExecutionServiceRole', 
+            assumed_by = iam.ServicePrincipal('ecs-tasks.amazonaws.com')    
+        )
+
+        ecs_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect('ALLOW'),
+                resources=['*'],
+                actions=[            
+                    'ecr:GetAuthorizationToken',
+                    'ecr:BatchCheckLayerAvailability',
+                    'ecr:GetDownloadUrlForLayer',
+                    'ecr:BatchGetImage',
+                    'logs:CreateLogStream',
+                    'logs:PutLogEvents'
+                ]
+            )
+        )
+
+        return ecs_role 
+
     def create_fagate_ALB_autoscaling(stack, vpc, image, name, env=None, port=None):
         ecs_role = iam.Role(
             stack, 
