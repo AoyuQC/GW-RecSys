@@ -1,5 +1,6 @@
 from aws_cdk import core, aws_ec2, aws_ecs, aws_ecs_patterns
 from .redis_helper import GWRedisHelper
+from .iam_helper import GWIAMHelper
 
 
 class CdkInfraStack(core.Stack):
@@ -14,5 +15,6 @@ class CdkInfraStack(core.Stack):
         #create redis
         self.redis_addr, self.redis_port = GWRedisHelper.create_redis(self, self.vpc)
 
-        #create kafka
+        #create ecs role
+        self.ecs_role = GWIAMHelper.create_ecs_role(self)
         

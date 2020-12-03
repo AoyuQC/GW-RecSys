@@ -1,12 +1,12 @@
 from aws_cdk import (core, aws_ec2 as ec2, aws_ecs as ecs, aws_ecs_patterns as
-                     ecs_patterns, aws_elasticache as ec, aws_rds as rds)
+                     ecs_patterns, aws_elasticache as ec, aws_rds as rds, aws_iam as iam)
 from .ecs_helper import GWEcsHelper
 
 
 class GWSampleStack(core.Stack):
 
     def __init__(self, scope: core.Construct, id: str, 
-            vpc: ec2.Vpc, **kwargs) -> None:
+            vpc: ec2.Vpc, ecs_role: iam.Role, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
         image = "nginx"

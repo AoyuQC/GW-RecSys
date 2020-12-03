@@ -9,27 +9,7 @@ class GWEcsHelper:
         self.name='EcsHelper'
 
     @staticmethod
-    def create_fagate_ALB_autoscaling(stack, vpc, image, name, env=None, port=None):
-        ecs_role = iam.Role(
-            stack, 
-            'FargateTaskExecutionServiceRole', 
-            assumed_by = iam.ServicePrincipal('ecs-tasks.amazonaws.com')    
-        )
-
-        ecs_role.add_to_policy(
-            iam.PolicyStatement(
-                effect=iam.Effect('ALLOW'),
-                resources=['*'],
-                actions=[            
-                    'ecr:GetAuthorizationToken',
-                    'ecr:BatchCheckLayerAvailability',
-                    'ecr:GetDownloadUrlForLayer',
-                    'ecr:BatchGetImage',
-                    'logs:CreateLogStream',
-                    'logs:PutLogEvents'
-                ]
-            )
-        )
+    def create_fagate_ALB_autoscaling(stack, vpc, image, name, ecs_role=None, env=None, port=None):
 
         cluster = ecs.Cluster(
             stack, 
@@ -37,14 +17,22 @@ class GWEcsHelper:
             vpc=vpc
         )
 
-        task = ecs.FargateTaskDefinition(
-            stack,
-            name+'-Task',
-            memory_limit_mib=512,
-            cpu=256,
-            execution_role=ecs_role, 
-            task_role=ecs_role
-        )
+        if ecs_role is not None:
+            task = ecs.FargateTaskDefinition(
+                stack,
+                name+'-Task',
+                memory_limit_mib=512,
+                cpu=256,
+                execution_role=ecs_role, 
+                task_role=ecs_role
+            )
+        else:
+            task = ecs.FargateTaskDefinition(
+                stack,
+                name+'-Task',
+                memory_limit_mib=512,
+                cpu=256
+            )
 
         if env is None:
             env = {"test": "test"}
@@ -77,7 +65,7 @@ class GWEcsHelper:
             name+"-Service",
             cluster=cluster,
             task_definition=task,
-            assign_public_ip=True,
+            #assign_public_ip=True,
             listener_port=port,
         )
 

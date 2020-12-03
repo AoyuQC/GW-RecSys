@@ -21,18 +21,39 @@ app = core.App()
 #GWGraphStack(app, "gw-graph-stack")
 # GWTrainHandlerStack(app, "gw-train-stack")
 
-infra_stack = CdkInfraStack(app, "cdk-stack-infer-infra")
+infra_stack = CdkInfraStack(
+                app, 
+                "cdk-stack-infer-infra"
+            )
 
-sample_stack = GWSampleStack(app, "cdk-stack-infer-Sample", infra_stack.vpc)
-#graph_stack = GWGraphStack(app, "cdk-stack-infer-graph", infra_stack.vpc)
-#dkn_stack = GWDknStack(app, "cdk-stack-infer-dkn", infra_stack.vpc)
-"""
+sample_stack = GWSampleStack(
+                app, 
+                "cdk-stack-infer-Sample", 
+                infra_stack.vpc, 
+                ecs_role = infra_stack.ecs_role
+            )
+
+graph_stack = GWGraphStack(
+                app, 
+                "cdk-stack-infer-graph", 
+                infra_stack.vpc,
+                ecs_role = infra_stack.ecs_role
+            )
+
+dkn_stack = GWDknStack(
+            app, 
+            "cdk-stack-infer-dkn", 
+            infra_stack.vpc,
+            ecs_role=infra_stack.ecs_role,
+        )
+
 infer_handler_stack = GWInferHandlerStack(
-    app, 
-    "cdk-stack-infer-handler", 
-    infra_stack.vpc, 
-    graph_stack.graph_inference_dns, 
-    dkn_stack.url
-)
-"""
+                        app, 
+                        "cdk-stack-infer-handler", 
+                        infra_stack.vpc, 
+                        ecs_role=infra_stack.ecs_role,
+                        graph_url=graph_stack.graph_inference_dns, 
+                        dkn_url=dkn_stack.url
+                    )
+
 app.synth()
