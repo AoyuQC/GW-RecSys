@@ -18,12 +18,12 @@ app = core.App()
 #GWGraphStack(app, "gw-graph-stack")
 #GWInferHandlerStack(app, "gw-inferhandler-stack")
 
-#GWGraphStack(app, "gw-graph-stack")
+GWGraphStack(app, "gw-graph-stack")
 # GWTrainHandlerStack(app, "gw-train-stack")
 
-infra_stack = CdkInfraStack(app, "cdk-stack-infer-infra")
+# infra_stack = CdkInfraStack(app, "cdk-stack-infer-infra")
 
-sample_stack = GWSampleStack(app, "cdk-stack-infer-Sample", infra_stack.vpc)
+# sample_stack = GWSampleStack(app, "cdk-stack-infer-Sample", infra_stack.vpc)
 #graph_stack = GWGraphStack(app, "cdk-stack-infer-graph", infra_stack.vpc)
 #dkn_stack = GWDknStack(app, "cdk-stack-infer-dkn", infra_stack.vpc)
 """
