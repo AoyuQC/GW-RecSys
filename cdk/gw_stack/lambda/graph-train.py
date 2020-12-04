@@ -17,6 +17,16 @@ from sagemaker_controller import create_training_job, create_endpoint, \
 # task = os.environ['TASK']
 _lambda = boto3.client('lambda')
 
+def get_datetime_str():
+    from datetime import datetime
+    now = datetime.now()
+    tt = now.timetuple()
+    prefix = tt[0]
+    name = '-'.join(['{:02}'.format(t) for t in tt[1:-3]])
+    suffix = '{:03d}'.format(now.microsecond)[:3]
+    job_name_suffix = "{}-{}-{}".format(prefix, name, suffix)
+    return job_name_suffix
+
 def handler(event, context):
     print('request: {}'.format(json.dumps(event)))
 
@@ -26,7 +36,7 @@ def handler(event, context):
     cfg['input_test_bucket'] = os.environ['INPUT_TEST_BUCKET']
     cfg['output_bucket'] = os.environ['OUTPUT_BUCKET']
     cfg['hparams'] = os.environ['HPARAMS']
-    cfg['date'] = os.environ['DATE']
+    cfg['date'] = get_datetime_str()
     cfg['name'] = os.environ['NAME']
     cfg['image_uri'] = os.environ['IMAGE_URI']
     cfg['sagemaker_role'] = os.environ['SAGEMAKER_ROLE']

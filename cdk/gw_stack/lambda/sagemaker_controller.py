@@ -7,7 +7,7 @@ def create_training_job(**kwargs):
     s3_input_train = "s3://{}".format(kwargs['input_train_bucket'])
     s3_input_validation = "s3://{}".format(kwargs['input_validation_bucket'])
     s3_output_path = "s3://{}".format(kwargs['output_bucket'])
-    hyperparameters = kwargs['hparam']
+    hyperparameters = kwargs['hparams']
     date = kwargs['date']
     name = kwargs['name']
     # s3_path = "s3://{}/{}/".format(bucket, jobname)
