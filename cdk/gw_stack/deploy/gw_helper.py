@@ -21,7 +21,7 @@ class GWAppHelper:
         date = kwargs['date']
         trigger_bucket = kwargs['trigger_bucket']
         input_train_bucket = kwargs['input_train_bucket']
-        input_test_bucket = kwargs['input_test_bucket']
+        input_validation_bucket = kwargs['input_validation_bucket']
         hparams = kwargs['hparams']
         output_bucket = kwargs['output_bucket']
         lambda_train_role = kwargs['lambda_role']
@@ -35,7 +35,7 @@ class GWAppHelper:
             role=lambda_train_role,
             environment={
                 'INPUT_TRAIN_BUCKET': input_train_bucket,
-                'INPUT_TEST_BUCKET': input_test_bucket,
+                'INPUT_VALIDATION_BUCKET': input_validation_bucket,
                 'OUTPUT_BUCKET': output_bucket,
                 'DATE': date,
                 'NAME': name,

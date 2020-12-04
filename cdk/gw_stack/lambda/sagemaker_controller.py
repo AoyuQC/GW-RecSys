@@ -1,4 +1,5 @@
 import boto3
+import json
 from iam_helper import IamHelper
 
 #def create_training_job(bucket, jobname, task, image_uri, instance):
@@ -40,9 +41,7 @@ def create_training_job(**kwargs):
             "InstanceType": instance,
             "VolumeSizeInGB": 64
         },
-        "HyperParameters": {
-            hyperparameters
-        },
+        "HyperParameters": json.loads(hyperparameters),
         "StoppingCondition": {
             "MaxRuntimeInSeconds": 86400
         },
