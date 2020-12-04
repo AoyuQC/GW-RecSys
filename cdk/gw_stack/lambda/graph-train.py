@@ -22,8 +22,10 @@ def handler(event, context):
 
     msg = {}
     cfg = {}
-    cfg['input_bucket'] = os.environ['INPUT_BUCKET']
+    cfg['input_train_bucket'] = os.environ['INPUT_TRAIN_BUCKET']
+    cfg['input_test_bucket'] = os.environ['INPUT_TEST_BUCKET']
     cfg['output_bucket'] = os.environ['OUTPUT_BUCKET']
+    cfg['hparams'] = os.environ['HPARAMS']
     cfg['date'] = os.environ['DATE']
     cfg['name'] = os.environ['NAME']
     cfg['image_uri'] = os.environ['IMAGE_URI']

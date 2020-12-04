@@ -20,7 +20,9 @@ class GWAppHelper:
         image_uri = kwargs['image_uri']
         date = kwargs['date']
         trigger_bucket = kwargs['trigger_bucket']
-        input_bucket = kwargs['input_bucket']
+        input_train_bucket = kwargs['input_train_bucket']
+        input_test_bucket = kwargs['input_test_bucket']
+        hparams = kwargs['hparams']
         output_bucket = kwargs['output_bucket']
         lambda_train_role = kwargs['lambda_role']
         sagemaker_train_role = kwargs['sagemaker_role'].role_arn
@@ -32,12 +34,14 @@ class GWAppHelper:
             code=_lambda.Code.asset('lambda'),
             role=lambda_train_role,
             environment={
-                'INPUT_BUCKET': input_bucket,
+                'INPUT_TRAIN_BUCKET': input_train_bucket,
+                'INPUT_TEST_BUCKET': input_test_bucket,
                 'OUTPUT_BUCKET': output_bucket,
                 'DATE': date,
                 'NAME': name,
                 'IMAGE_URI': image_uri,
                 'SAGEMAKER_ROLE': sagemaker_train_role,
+                'HPARAMS': hparams,
                 'INSTANCE': instance
             }
         )
