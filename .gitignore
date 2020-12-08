@@ -127,3 +127,16 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/docker/dkn/recsys_tools/tr/
+.idea
+/docker/dkn/recsys_tools/recsys_kg/dkn
+.DS_Store
+toutiao_cat_data.txt.zip
+
+sagemaker-ml-workflow-with-apache-airflow-master/
+sagemaker-ml-workflow-with-apache-airflow-master.zip
+airflow_tutorial/
+.idea/*
+docker/dkn/infer_docker_image/cn/test_model_serving.sh
+docker/dkn/infer_docker_image/cn/tf_serving.log
+docker/dkn/infer_docker_image/cn/dkn_model
