@@ -1,7 +1,7 @@
 from aws_cdk import (core, aws_ec2 as ec2, aws_ecs as ecs, aws_ecs_patterns as
                      ecs_patterns, aws_elasticache as ec, aws_rds as rds, aws_iam as iam)
 from .ecs_helper import GWEcsHelper
-
+from .redis_helper import GWRedisHelper
 
 class GWSampleStack(core.Stack):
 
@@ -20,4 +20,7 @@ class GWSampleStack(core.Stack):
             name,
             port=port
         )
+
+        self.redis_addr, self.redis_port = GWRedisHelper.create_redis(self, vpc)
+
 

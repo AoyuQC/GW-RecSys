@@ -16,10 +16,10 @@ from .gw_helper import GWAppHelper
 
 class GWGraphStack(core.Stack):
 
-    def __init__(self, scope: core.Construct, id: str, vpc: ec2.Vpc, **kwargs) -> None:
+    def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        #vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
+        vpc = ec2.Vpc(self, "GWVpc", max_azs=3)     # default is all AZs in region
 
         lambda_train_role = GWAppHelper.create_lambda_train_role(self)
         sagemaker_train_role = GWAppHelper.create_sagemaker_train_role(self)
@@ -33,13 +33,11 @@ class GWGraphStack(core.Stack):
         cfg_dict['output_bucket']= "{}-bucket-model-{}".format(cfg_dict['name'], cfg_dict['date'])
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
         cfg_dict['instance'] = "ml.g4dn.xlarge"
-        cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
+        cfg_dict['image_uri'] = '856419311962.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
         cfg_dict['lambda_role'] = lambda_train_role
         cfg_dict['sagemaker_role'] = sagemaker_train_role
         
-        self.graph_train = GWAppHelper.create_trigger_training_task(self, **cfg_dict)
-
-
+        # self.graph_train = GWAppHelper.create_trigger_training_task(self, **cfg_dict)
 
         ## Create Redis
         #self.create_redis(vpc)
@@ -50,6 +48,7 @@ class GWGraphStack(core.Stack):
         cfg_dict = {}
         cfg_dict['function'] = 'graph_inference'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
+        cfg_dict['ecs_role'] = GWAppHelper.create_ecs_role(self)
         self.graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
         #cfg_dict = {}
         #cfg_dict['function'] = 'graph_inference'
@@ -61,6 +60,7 @@ class GWGraphStack(core.Stack):
         #cfg_dict['instance'] = "ml.g4dn.xlarge"
         #cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
         #self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
+    
 
     def create_redis(self, vpc):
         subnetGroup = ec.CfnSubnetGroup(
@@ -167,6 +167,7 @@ class GWGraphStack(core.Stack):
         service_name = "{}-service".format(app_name)
 
         app_ecr = kwargs['ecr']
+        ecs_role = kwargs['ecs_role']
 
         ####################
         # Create Cluster
@@ -178,12 +179,12 @@ class GWGraphStack(core.Stack):
         ####################
         # Config IAM Role
         # add managed policy statement
-        ecs_base_role = iam.Role(
-            self,
-            "ecs_service_role",
-            assumed_by=iam.ServicePrincipal("ecs.amazonaws.com")
-        )
-        ecs_role = ecs_base_role.from_role_arn(self, 'gw-ecr-role-test', role_arn='arn:aws:iam::002224604296:role/ecsTaskExecutionRole')
+        # ecs_base_role = iam.Role(
+        #     self,
+        #     "ecs_service_role",
+        #     assumed_by=iam.ServicePrincipal("ecs.amazonaws.com")
+        # )
+        # ecs_role = ecs_base_role.from_role_arn(self, 'gw-ecr-role-test', role_arn='arn:aws:iam::002224604296:role/ecsTaskExecutionRole')
 
         ####################
         # Create Fargate Task Definition
@@ -196,7 +197,11 @@ class GWGraphStack(core.Stack):
         ecs_log = ecs.LogDrivers.aws_logs(stream_prefix=log_name)
         # 1. prepare ecr repository
         ecr_repo = ecr.Repository.from_repository_name(self, id = image_name, repository_name = app_ecr)
-        farget_container = fargate_task.add_container(container_name,image=ecs.ContainerImage.from_ecr_repository(ecr_repo), logging=ecs_log
+        farget_container = fargate_task.add_container(
+            container_name,
+            image=ecs.ContainerImage.from_ecr_repository(ecr_repo), 
+            logging=ecs_log,
+            environment={'KG_PATH':"s3://autorec"}
         )
         # 2. config port mapping
         port_mapping = ecs.PortMapping(
@@ -235,7 +240,7 @@ class GWGraphStack(core.Stack):
             scale_out_cooldown=core.Duration.seconds(60),
         )
 
-        return fargate_service.load_balancer
+        return fargate_service.load_balancer.load_balancer_dns_name
 
     def create_lambda_trigger_task_custom(self, vpc, **kwargs):
         ####################

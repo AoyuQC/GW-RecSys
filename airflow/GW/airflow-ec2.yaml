@@ -210,11 +210,11 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
   DBSecurityGroup:
-    Type: AWS::RDS::DBSecurityGroup
+    Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Frontend Access
-      DBSecurityGroupIngress:
-        EC2SecurityGroupName:
+      SecurityGroupIngress:
+        SourceSecurityGroupName:
           Ref: AirflowEC2SecurityGroup
   EC2Role:
     Type: AWS::IAM::Role
@@ -225,7 +225,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: ec2.amazonaws.com
+              Service: ec2.amazonaws.com.cn
             Action: 'sts:AssumeRole'
           - Effect: Allow
             Principal:
@@ -233,7 +233,7 @@ Resources:
             Action: 'sts:AssumeRole'
       Path: "/"
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws-cn:iam::aws:policy/AmazonSageMakerFullAccess
       Policies:
         - PolicyName: AirflowResourceAccess
           PolicyDocument:
@@ -243,8 +243,8 @@ Resources:
                 Action:
                   - s3:*
                 Resource:
-                  - !Sub "arn:aws:s3:::${S3BucketName}"
-                  - !Sub "arn:aws:s3:::${S3BucketName}/*"
+                  - !Sub "arn:aws-cn:s3:::${S3BucketName}"
+                  - !Sub "arn:aws-cn:s3:::${S3BucketName}/*"
               - Effect: Allow
                 Action:
                   - iam:GetRole
@@ -255,12 +255,12 @@ Resources:
       InstanceProfileName: AirflowInstanceProfile
       Roles:
         - Ref: EC2Role
-  S3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
-    Properties:
-      AccessControl: BucketOwnerFullControl
-      BucketName: !Ref "S3BucketName"
+#  S3Bucket:
+#    Type: AWS::S3::Bucket
+#    DeletionPolicy: Retain
+#    Properties:
+#      AccessControl: BucketOwnerFullControl
+#      BucketName: !Ref "S3BucketName"
   AirflowSageMakerExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -275,7 +275,7 @@ Resources:
             Action:
               - "sts:AssumeRole"
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws-cn:iam::aws:policy/AmazonSageMakerFullAccess
       Path: "/service-role/"
       Policies:
         - PolicyName: SageMakerS3BucketAccess
@@ -286,8 +286,8 @@ Resources:
                 Action:
                   - s3:*
                 Resource:
-                  - !Sub "arn:aws:s3:::${S3BucketName}"
-                  - !Sub "arn:aws:s3:::${S3BucketName}/*"
+                  - !Sub "arn:aws-cn:s3:::${S3BucketName}"
+                  - !Sub "arn:aws-cn:s3:::${S3BucketName}/*"
 Outputs:
   AirflowEC2PublicDNSName:
     Description: Public DNS Name of the Airflow EC2 instance

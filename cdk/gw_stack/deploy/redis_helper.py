@@ -10,12 +10,13 @@ class GWRedisHelper:
 
     @staticmethod
     def create_redis(stack, vpc):
+        print(vpc.private_subnets)
         subnetGroup = ec.CfnSubnetGroup(
             stack,
             "RedisClusterPrivateSubnetGroup",
             cache_subnet_group_name="recommendations-redis-subnet-group",
-            subnet_ids=[subnet.subnet_id for subnet in vpc.private_subnets],
-            description="Redis subnet for recommendations"
+            description="Redis subnet for recommendations",
+            subnet_ids=[subnet.subnet_id for subnet in vpc.private_subnets]
         )
 
         redis_security_group = ec2.SecurityGroup(

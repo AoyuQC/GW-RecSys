@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # 这个账号指的是想把 build 出来的 image 放到哪个 账号的 ECR 下，也就是当前使用者的account，跟 aws sts get-caller-identity 返回的 account 一致
 ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
-REGION=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/\(.*\)[a-z]/\1/'`
+#REGION=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/\(.*\)[a-z]/\1/'`
+REGION=$(aws configure get region)
 REPO_NAME=gw-infer
 
-TAG=`date '+%Y%m%d%H%M%S'`
+#TAG=`date '+%Y%m%d%H%M%S'`
+TAG="latest"
 
 docker pull tensorflow/serving
 

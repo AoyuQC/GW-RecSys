@@ -9,13 +9,38 @@ class GWEcsHelper:
         self.name='EcsHelper'
 
     @staticmethod
-    def create_fagate_ALB_autoscaling(stack, vpc, image, name, ecs_role=None, env=None, port=None):
+    def create_ecs_role(stack):
+        ecs_role = iam.Role(
+            stack, 
+            'FargateTaskExecutionServiceRole', 
+            assumed_by = iam.ServicePrincipal('ecs-tasks.amazonaws.com')    
+        )
 
+        ecs_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect('ALLOW'),
+                resources=['*'],
+                actions=[            
+                    'ecr:GetAuthorizationToken',
+                    'ecr:BatchCheckLayerAvailability',
+                    'ecr:GetDownloadUrlForLayer',
+                    'ecr:BatchGetImage',
+                    'logs:CreateLogStream',
+                    'logs:PutLogEvents'
+                ]
+            )
+        )
+
+        return ecs_role 
+
+    def create_fagate_ALB_autoscaling(stack, vpc, image, name, ecs_role=None, env=None, port=None):
         cluster = ecs.Cluster(
             stack, 
             name+'fargate-service-autoscaling', 
             vpc=vpc
         )
+
+        ecs_log = ecs.LogDrivers.aws_logs(stream_prefix=name)
 
         if ecs_role is not None:
             task = ecs.FargateTaskDefinition(
@@ -42,6 +67,7 @@ class GWEcsHelper:
             task.add_container(
                 name+'-Contaner',
                 image=ecs.ContainerImage.from_registry(image),
+                logging=ecs_log,
                 environment=env
             ).add_port_mappings(
                     ecs.PortMapping(
@@ -54,20 +80,28 @@ class GWEcsHelper:
             task.add_container(
                 name+'-Contaner',
                 image=ecs.ContainerImage.from_registry(image),
+                logging=ecs_log,
                 environment=env
             )
 
-        ecs_log = ecs.LogDrivers.aws_logs(stream_prefix='gw-inference')
-
         # Create Fargate Service
-        fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
-            stack,
-            name+"-Service",
-            cluster=cluster,
-            task_definition=task,
-            #assign_public_ip=True,
-            listener_port=port,
-        )
+        if port is not None:
+            fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
+                stack,
+                name+"-Service",
+                cluster=cluster,
+                task_definition=task,
+                assign_public_ip=True,
+                listener_port=port
+            )
+        else:
+            fargate_service = ecs_patterns.NetworkLoadBalancedFargateService(
+                stack,
+                name+"-Service",
+                cluster=cluster,
+                task_definition=task,
+                assign_public_ip=True
+            )
 
         fargate_service.service.connections.security_groups[0].add_ingress_rule(
             peer=ec2.Peer.ipv4(vpc.vpc_cidr_block),
@@ -83,13 +117,14 @@ class GWEcsHelper:
             scale_in_cooldown=core.Duration.seconds(60),
             scale_out_cooldown=core.Duration.seconds(60),
         )
-
+        '''
         core.CfnOutput(
             stack, 
             name+'ServiceURL',    
             value='http://{}/'.format(fargate_service.load_balancer.load_balancer_full_name),
             export_name=name+'URL'
         )
+        '''
         
         return fargate_service.load_balancer.load_balancer_dns_name
 

@@ -84,3 +84,31 @@ class GWAppHelper:
         base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSageMakerFullAccess"))
 
         return base_role    
+        
+    def create_ecs_role(self):
+        ecs_role = iam.Role(
+            self, 
+            'FargateTaskExecutionServiceRole', 
+            assumed_by = iam.ServicePrincipal('ecs-tasks.amazonaws.com')    
+        )
+
+        ecs_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect('ALLOW'),
+                resources=['*'],
+                actions=[            
+                    'ecr:GetAuthorizationToken',
+                    'ecr:BatchCheckLayerAvailability',
+                    'ecr:GetDownloadUrlForLayer',
+                    'ecr:BatchGetImage',
+                    'logs:CreateLogStream',
+                    'logs:PutLogEvents'
+                ]
+            )
+        )
+
+        ecs_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"))
+        ecs_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonECS_FullAccess"))
+        ecs_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonECSTaskExecutionRolePolicy"))
+
+        return ecs_role 

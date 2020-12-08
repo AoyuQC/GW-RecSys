@@ -15,46 +15,14 @@ import pandas as pd
 
 import requests
 
-prefix = '/opt/ml/'
-model_path = os.path.join(prefix, 'model')
-
 graph_url = os.environ['GRAPH_URL']
 dkn_url = os.environ['DKN_URL']
 
-# graph = kg.Kg('kg')
-# model = encoding.encoding(graph)
+graph_url="http://"+graph_url+"/invocations"
+dkn_url="http://"+dkn_url+"/v1/models/dkn:predict"
 
-# A singleton for holding the model. This simply loads the model and holds it.
-# It has a predict function that does a prediction based on the model and the input data.
-
-
-class ScoringService(object):
-    import kg
-    import encoding
-    graph = kg.Kg('kg')  # Where we keep the model when it's loaded
-    model = encoding.encoding(graph)
-
-    @classmethod
-    def get_model(cls):
-        """Get the model object for this instance, loading it if it's not already loaded."""
-        if cls.model == None:
-            # import kg
-            # import encoding
-            cls.model = model
-            # with open(os.path.join(model_path, 'decision-tree-model.pkl'), 'r') as inp:
-            #     cls.model = pickle.load(inp)
-        return cls.model
-
-    @classmethod
-    def predict(cls, input):
-        """For the input, do the predictions and return them.
-
-        Args:
-            input (a pandas dataframe): The data on which to do the predictions. There will be
-                one prediction per row in the dataframe"""
-        clf = cls.get_model()
-        return clf[input]
-
+print("GRAPH_URL: %s" % graph_url)
+print("DKN_URL: %s" % dkn_url)
 
 # The flask app for serving predictions
 app = flask.Flask(__name__)
@@ -117,10 +85,11 @@ def transformation():
         history.append(i['title'])
     print(history)
 
-    graph_url = 'http://54.87.130.9:8080/invocations'  #history urll ???
+    #graph_url = 'http://54.87.130.9:8080/invocations'  #history urll ???
     header = {'Content-Type': 'application/json'}
-    his_data = {'instance': history}
-    his_res = requests.post(graph_url, params=his_data, headers=header)
+    his_data = {"instance": history}
+    his_res = requests.post(graph_url, data=json.dumps(his_data), headers=header)
+    print(his_res.text)
 
     recall = []
     for i in data['recall']:
@@ -130,27 +99,35 @@ def transformation():
 
     #graph_url=graph_url='http://54.87.130.9:8080/invocations' #recall urll ???
     header = {'Content-Type': 'application/json'}
-    recall_data = {'instance': recall}
-    recall_res = requests.post(graph_url, params=recall_data, headers=header)
+    recall_data = {"instance": recall}
+    recall_res = requests.post(graph_url, data=json.dumps(recall_data), headers=header)
+    print(recall_res.text)
 
     #build click_entities
     click_entities = []
-    for i in his_res:
+    for i in json.loads(his_res.text)['result']:
         print(i[1])
-        click_entities.append(i[1])
+        tmp=list(map(lambda x: x > 6729 and 6729 or x, i[1]))
+        click_entities.append(tmp)
+    for j in range(0,10-len(test)):
+        click_entities.append([0]*16)
+
     print(click_entities)
 
     #build click_words
     click_words = []
-    for i in his_res:
+    for i in json.loads(his_res.text)['result']:
         print(i[0])
+        tmp=list(map(lambda x: x > 10061 and 10061 or x, i[0]))
         click_words.append(i[0])
     print(click_words)
 
     instances = []
-    for i in recall_res:
-        news_words = i[0]
-        news_entities = i[1]
+    for i in json.loads(recall_res.text)['result']:
+        news_words=list(map(lambda x: x > 10061 and 10061 or x, i[0]))
+        news_entities=list(map(lambda x: x > 6729 and 6729 or x, i[1]))
+        #news_words = i[0]
+        #news_entities = i[1]
         instance = {
             "news_words": news_words,
             "news_entities": news_entities,
@@ -163,31 +140,17 @@ def transformation():
 
     #dkn_url='https://api.ireaderm.net/account/charge/info/android' #dkn urll ???
     header = {'Content-Type': 'application/json'}
-    dkn_res = requests.post(dkn_url, params=dkn_data, headers=header)
+    dkn_res = requests.post(dkn_url, data=json.dumps(dkn_data), headers=header)
 
     results = []
+    tmp = json.loads(dkn_res.text)
     for i in range(len(data['recall'])):
         result = {
             "id": data['recall'][i]["id"],
-            "score": dkn_res['predictions'][i]
+            "score": tmp['predictions'][i]
         }
         results.append(result)
     response = {"result": results}
 
-    return flask.Response(response=response, status=200, mimetype='application/json')
+    return flask.Response(response=json.dumps(response), status=200, mimetype='application/json')
 
-    # Do the prediction
-    #predictions = ScoringService.predict(data)
-    #print("prediction is {}".format(predictions))
-
-    ## Convert from numpy back to CSV
-    #out = StringIO.StringIO()
-    #pd.DataFrame({'results':predictions}).to_csv(out, header=False, index=False)
-    #result = out.getvalue()
-    #rr = json.dumps({'result': np.asarray(predictions).tolist()})
-    """
-    rr = data
-    print("bytes prediction is {}".format(rr))
-
-    return flask.Response(response=rr, status=200, mimetype='application/json')
-    """

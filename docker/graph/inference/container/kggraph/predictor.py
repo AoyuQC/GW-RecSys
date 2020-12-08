@@ -16,6 +16,8 @@ import pandas as pd
 prefix = '/opt/ml/'
 model_path = os.path.join(prefix, 'model')
 
+kg_path = os.environ['KG_PATH']
+
 # graph = kg.Kg('kg')
 # model = encoding.encoding(graph)
 
@@ -25,7 +27,7 @@ model_path = os.path.join(prefix, 'model')
 class ScoringService(object):
     import kg
     import encoding
-    graph = kg.Kg('kg')# Where we keep the model when it's loaded
+    graph = kg.Kg('kg', kg_folder=kg_path) # Where we keep the model when it's loaded
     model = encoding.encoding(graph)
 
     @classmethod

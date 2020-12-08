@@ -14,7 +14,7 @@ account=$(aws sts get-caller-identity --query Account --output text)
 region=$(aws configure get region)
 region=${region:-cn-north-1}
 
-fullname="${account}.dkr.ecr.${region}.amazonaws.com/${algorithm_name}:latest"
+fullname="${account}.dkr.ecr.${region}.amazonaws.com.cn/${algorithm_name}:latest"
 
 # If the repository doesn't exist in ECR, create it.
 
@@ -52,6 +52,5 @@ eval $(aws ecr get-login --registry-ids ${registry_id} --region ${region} --no-i
 # with the full name.
 
 docker build  -t ${algorithm_name} . --build-arg REGISTRY_URI=${registry_uri}
-docker tag ${algorithm_name} ${fullname}
-
+docker tag ${algorithm_name}:latest ${fullname}
 docker push ${fullname}
