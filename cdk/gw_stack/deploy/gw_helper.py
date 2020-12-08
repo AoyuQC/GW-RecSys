@@ -18,9 +18,10 @@ class GWAppHelper:
         task = "{}-task".format(name)
         instance = kwargs['instance']
         image_uri = kwargs['image_uri']
-        date = kwargs['date']
         trigger_bucket = kwargs['trigger_bucket']
-        input_bucket = kwargs['input_bucket']
+        input_train_bucket = kwargs['input_train_bucket']
+        input_validation_bucket = kwargs['input_validation_bucket']
+        hparams = kwargs['hparams']
         output_bucket = kwargs['output_bucket']
         lambda_train_role = kwargs['lambda_role']
         sagemaker_train_role = kwargs['sagemaker_role'].role_arn
@@ -32,12 +33,13 @@ class GWAppHelper:
             code=_lambda.Code.asset('lambda'),
             role=lambda_train_role,
             environment={
-                'INPUT_BUCKET': input_bucket,
+                'INPUT_TRAIN_BUCKET': input_train_bucket,
+                'INPUT_VALIDATION_BUCKET': input_validation_bucket,
                 'OUTPUT_BUCKET': output_bucket,
-                'DATE': date,
                 'NAME': name,
                 'IMAGE_URI': image_uri,
                 'SAGEMAKER_ROLE': sagemaker_train_role,
+                'HPARAMS': hparams,
                 'INSTANCE': instance
             }
         )
@@ -82,6 +84,8 @@ class GWAppHelper:
         )
         base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"))
         base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSageMakerFullAccess"))
+        base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonElasticContainerRegistryPublicFullAccess"))
+        base_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonEC2ContainerRegistryFullAccess"))
 
         return base_role    
         

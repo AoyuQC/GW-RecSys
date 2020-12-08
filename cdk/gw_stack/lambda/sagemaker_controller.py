@@ -1,10 +1,13 @@
 import boto3
+import json
 from iam_helper import IamHelper
 
 #def create_training_job(bucket, jobname, task, image_uri, instance):
 def create_training_job(**kwargs):
-    input_bucket = kwargs['input_bucket']
-    output_bucket = kwargs['output_bucket']
+    s3_input_train = "s3://{}".format(kwargs['input_train_bucket'])
+    s3_input_validation = "s3://{}".format(kwargs['input_validation_bucket'])
+    s3_output_path = "s3://{}".format(kwargs['output_bucket'])
+    hyperparameters = kwargs['hparams']
     date = kwargs['date']
     name = kwargs['name']
     # s3_path = "s3://{}/{}/".format(bucket, jobname)
@@ -22,38 +25,58 @@ def create_training_job(**kwargs):
     instance = kwargs['instance']
     # s3_model_url = s3_output_path +'sagemaker-recsys-graph-train-2020-11-25-07-47-06-659/'
     s3_model_url = "s3://{}/".format(kwargs['output_bucket'])
-
-    response = client.create_training_job(
-        TrainingJobName = job_name,
-        HyperParameters = {},
-        AlgorithmSpecification={
-            'TrainingImage': image_uri,
-            'TrainingInputMode': 'File',
+    #Ensure that the train and validation data folders generated above are reflected in the "InputDataConfig" parameter below.
+    common_training_params = \
+    {
+        "AlgorithmSpecification": {
+            "TrainingImage": image_uri,
+            "TrainingInputMode": "File"
         },
-        RoleArn = role_arn,
-        InputDataConfig=[
+        "RoleArn": role_arn,
+        "OutputDataConfig": {
+            "S3OutputPath": s3_output_path
+        },
+        "ResourceConfig": {
+            "InstanceCount": 1,   
+            "InstanceType": instance,
+            "VolumeSizeInGB": 64
+        },
+        "HyperParameters": json.loads(hyperparameters),
+        "StoppingCondition": {
+            "MaxRuntimeInSeconds": 86400
+        },
+        "InputDataConfig": [
             {
-                'ChannelName': "training", # environment variable SM_CHANNEL_TRAINING and /opt/ml/input/data/training
-                'DataSource': {
-                    'S3DataSource': {
-                        'S3DataType': 'S3Prefix',
-                        'S3Uri': s3_model_url,
-                    },
+                "ChannelName": "train",
+                "DataSource": {
+                    "S3DataSource": {
+                        "S3DataType": "S3Prefix",
+                        "S3Uri": s3_input_train,
+                        "S3DataDistributionType": "FullyReplicated" 
+                    }
                 },
+                "ContentType": "text/csv",
+                "CompressionType": "None"
             },
-        ],
-        OutputDataConfig={
-            'S3OutputPath':s3_model_url 
-        },
-        ResourceConfig = {
-            'InstanceType': instance,
-            'InstanceCount': 1,
-            'VolumeSizeInGB': 64,
-        },
-        StoppingCondition = {
-            'MaxRuntimeInSeconds': 600,
-        },
-    )
+            {
+                "ChannelName": "validation",
+                "DataSource": {
+                    "S3DataSource": {
+                        "S3DataType": "S3Prefix",
+                        "S3Uri": s3_input_validation,
+                        "S3DataDistributionType": "FullyReplicated"
+                    }
+                },
+                "ContentType": "text/csv",
+                "CompressionType": "None"
+            }
+        ]
+    }
+
+    common_training_params['TrainingJobName'] = job_name
+
+    response = client.create_training_job(**common_training_params)
+
     return response
 
 def create_endpoint(job_name, model_uri):

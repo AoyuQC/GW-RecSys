@@ -13,6 +13,7 @@ from aws_cdk import (core,
                     )
 
 from .gw_helper import GWAppHelper
+import json
 
 class GWGraphStack(core.Stack):
 
@@ -29,7 +30,8 @@ class GWGraphStack(core.Stack):
         cfg_dict['name'] = 'graph-train'
         cfg_dict['date'] = GWAppHelper.get_datetime_str()
         cfg_dict['trigger_bucket']= "{}-bucket-event-{}".format(cfg_dict['name'], cfg_dict['date'])
-        cfg_dict['input_bucket']= "{}-bucket-model-{}".format(cfg_dict['name'], cfg_dict['date'])
+        cfg_dict['input_train_bucket']= "{}-train_bucket".format(cfg_dict['name'])
+        cfg_dict['input_validation_bucket']= "{}-validation-bucket".format(cfg_dict['name'])
         cfg_dict['output_bucket']= "{}-bucket-model-{}".format(cfg_dict['name'], cfg_dict['date'])
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-train'
         cfg_dict['instance'] = "ml.g4dn.xlarge"
@@ -49,7 +51,7 @@ class GWGraphStack(core.Stack):
         cfg_dict['function'] = 'graph_inference'
         cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
         cfg_dict['ecs_role'] = GWAppHelper.create_ecs_role(self)
-        self.graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
+        #self.graph_inference_dns = self.create_fagate_NLB_autoscaling_custom(vpc, **cfg_dict)
         #cfg_dict = {}
         #cfg_dict['function'] = 'graph_inference'
         #cfg_dict['ecr'] = 'sagemaker-recsys-graph-inference'
@@ -60,6 +62,28 @@ class GWGraphStack(core.Stack):
         #cfg_dict['instance'] = "ml.g4dn.xlarge"
         #cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-graph-train'
         #self.create_lambda_trigger_task_custom(vpc, **cfg_dict)
+
+        ####################
+        # test for dkn training
+        cfg_dict['name'] = 'dkn-train'
+        cfg_dict['trigger_bucket']= "{}-bucket-event".format(cfg_dict['name'])
+        #cfg_dict['input_bucket']= "{}-bucket-model-{}".format(cfg_dict['name'], cfg_dict['date'])
+        #cfg_dict['output_bucket']= "{}-bucket-model-{}".format(cfg_dict['name'], cfg_dict['date'])
+
+        hyperparameters = {'learning_rate': '0.0001',  'servable_model_die': '/opt/ml/model', 'loss_weight': '1.0', 
+        'use_context': 'True', 'max_click_history': '30',  'num_epochs': '1', 'max_title_length': '16',  'entity_dim': '128', 
+        'word_dim': '300',  'batch_size': '128',  'perform_shuffle': '1', 'checkpointPath': '/opt/ml/checkpoints'}
+
+        cfg_dict['hparams'] = json.dumps(hyperparameters)
+        cfg_dict['input_train_bucket'] = "autorec-great-wisdom/train.csv/"
+        cfg_dict['input_validation_bucket'] = "autorec-great-wisdom/test.csv/"
+        cfg_dict['output_bucket'] = "autorec-great-wisdom/output_model/"
+        cfg_dict['ecr'] = 'sagemaker-recsys-dkn-train'
+        cfg_dict['instance'] = "ml.p2.xlarge"
+        cfg_dict['image_uri'] = '002224604296.dkr.ecr.us-east-1.amazonaws.com/sagemaker-recsys-dkn-train'
+        cfg_dict['lambda_role'] = lambda_train_role
+        cfg_dict['sagemaker_role'] = sagemaker_train_role
+        self.dkn_train = GWAppHelper.create_trigger_training_task(self, **cfg_dict)
     
 
     def create_redis(self, vpc):
